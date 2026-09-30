@@ -173,6 +173,8 @@ const APP_FUNCTIONS = new Set([
   'app.complete_reminder',
   'app.reclaim_stuck_reminders',
   'app.pending_reminder_targets',
+  'app.meeting_occurrences',
+  'app.generate_occurrences',
   'app.mark_notification_sent',
   'app.mark_notification_failed',
 ]);

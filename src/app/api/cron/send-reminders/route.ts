@@ -22,6 +22,20 @@ export const dynamic = 'force-dynamic';
  *   4. app.complete_reminder() deduit le statut du rappel.
  */
 export async function POST(request: Request) {
+  return run(request);
+}
+
+/**
+ * GET — Vercel Cron appelle toujours en GET et ajoute automatiquement
+ * l'en-tete `Authorization: Bearer $CRON_SECRET` si la variable
+ * CRON_SECRET est definie dans l'environnement du projet.
+ * Supporter les deux methodes evite une mauvaise surprise au deploiement.
+ */
+export async function GET(request: Request) {
+  return run(request);
+}
+
+async function run(request: Request) {
   const secret = process.env.CRON_SECRET;
   const provided = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
 
