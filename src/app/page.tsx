@@ -4,7 +4,8 @@ import { currentUser } from '@/lib/auth';
 import { getDashboard } from '@/lib/dashboard';
 import { t } from '@/lib/i18n';
 import Shell from '@/components/Shell';
-import { Card, Empty, Stat, StatusBadge, Badge } from '@/components/ui';
+import { Card, Empty, Stat, StatusBadge, ReportFlags, RsvpBadge, PageHeader } from '@/components/ui';
+import { ClipboardCheck, MessageSquareWarning, ClockAlert, UserX, FileText } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,31 +50,49 @@ export default async function Home() {
           </p>
         </header>
 
-        {/* Chiffres cles : ce qu'un superviseur veut voir sans cliquer. */}
+        {/* Chiffres cles : ce qu'un superviseur veut voir sans cliquer. Le
+            sous-texte porte la REGLE, pas une precision : c'est ce qui
+            transforme un chiffre en information. */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {isTrader ? (
             <>
-              <Stat label={t(user.locale, 'dash.my_drafts')} value={data.totals.drafts} />
+              <Stat
+                label={t(user.locale, 'dash.my_drafts')}
+                value={data.totals.drafts}
+                Icon={FileText}
+              />
               <Stat
                 label={t(user.locale, 'dash.my_corrections')}
                 value={data.totals.corrections_open}
                 tone={data.totals.corrections_open > 0 ? 'warn' : 'neutral'}
+                Icon={MessageSquareWarning}
               />
             </>
           ) : (
             <>
-              <Stat label={t(user.locale, 'dash.to_review')} value={data.totals.to_review} />
+              <Stat
+                label={t(user.locale, 'dash.to_review')}
+                value={data.totals.to_review}
+                href="/reports"
+                Icon={ClipboardCheck}
+              />
               <Stat
                 label={t(user.locale, 'dash.corrections')}
                 value={data.totals.corrections_open}
                 tone={data.totals.corrections_open > 0 ? 'warn' : 'neutral'}
+                Icon={MessageSquareWarning}
               />
               <Stat
                 label={t(user.locale, 'dash.overdue')}
                 value={data.totals.overdue}
                 tone={data.totals.overdue > 0 ? 'danger' : 'neutral'}
+                Icon={ClockAlert}
               />
-              <Stat label={t(user.locale, 'dash.silent')} value={data.silent.length} />
+              <Stat
+                label={t(user.locale, 'dash.silent')}
+                value={data.silent.length}
+                Icon={UserX}
+              />
             </>
           )}
         </div>
@@ -104,10 +123,13 @@ export default async function Home() {
                         {r.hours_since_submission ? ` · ${Math.round(Number(r.hours_since_submission))} h` : ''}
                       </div>
                     </div>
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      {r.is_critical === true && <Badge tone="danger">critique</Badge>}
-                      {r.is_overdue === true && <Badge tone="warn">en retard</Badge>}
-                      {r.is_stale === true && <Badge tone="warn">obsolete</Badge>}
+                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                      <ReportFlags
+                        locale={user.locale}
+                        isCritical={r.is_critical === true}
+                        isLate={r.is_overdue === true}
+                        isStale={r.is_stale === true}
+                      />
                       <StatusBadge status={String(r.status)} locale={user.locale} />
                     </div>
                   </li>
@@ -130,14 +152,7 @@ export default async function Home() {
                       <div className="tnum mt-0.5 text-xs text-text-faint">{fmtWhen(m.starts_at)}</div>
                     </div>
                     {isTrader ? (
-                      <Badge
-                        tone={
-                          m.rsvp_status === 'accepted' ? 'success'
-                            : m.rsvp_status === 'declined' ? 'danger' : 'neutral'
-                        }
-                      >
-                        {String(m.rsvp_status ?? 'pending')}
-                      </Badge>
+                      <RsvpBadge status={m.rsvp_status} locale={user.locale} />
                     ) : (
                       <span className="tnum shrink-0 text-xs text-text-faint">
                         {String(m.accepted_count ?? 0)}/{String(m.participants_count ?? 0)}

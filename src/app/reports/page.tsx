@@ -3,7 +3,7 @@ import { asUser, queryWith } from '@/lib/db';
 import { pageUser } from '@/lib/page';
 import { t } from '@/lib/i18n';
 import Shell from '@/components/Shell';
-import { Card, Empty, StatusBadge, Badge, PageHeader } from '@/components/ui';
+import { Card, Empty, StatusBadge, ReportFlags, PageHeader } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -87,9 +87,12 @@ export default async function ReportsPage() {
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <StatusBadge status={String(r.status)} locale={user.locale} />
-                          {r.is_critical === true && <Badge tone="danger">critique</Badge>}
-                          {r.is_overdue === true && <Badge tone="warn">en retard</Badge>}
-                          {r.is_stale === true && <Badge tone="warn">obsolete</Badge>}
+                          <ReportFlags
+                            locale={user.locale}
+                            isCritical={r.is_critical === true}
+                            isLate={r.is_overdue === true}
+                            isStale={r.is_stale === true}
+                          />
                         </div>
                       </td>
                       <td className="tnum whitespace-nowrap px-4 py-3 text-text-muted">

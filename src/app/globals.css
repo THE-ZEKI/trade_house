@@ -3,65 +3,185 @@
 /**
  * Trade House — fondations visuelles.
  *
- * Les couleurs sont des variables CSS, pas des classes en dur : le mode sombre
- * et, plus tard, une charte differente se changent ici sans toucher aux
- * composants. Les statuts de rapport ont chacun une teinte, reprise a
- * l'identique dans le PDF et dans l'interface (RG-53 : le code est stocke,
- * la couleur est une convention de presentation, jamais une donnee).
+ * Conforme a docs/DESIGN_SYSTEM.md §1 : bleu ciel dominant, blanc, et des
+ * teintes semantiques douces. Chaque statut combine icone + libelle + teinte ;
+ * la couleur ne porte jamais seule l'information (regle 0.2), ce qui la rend
+ * lisible en niveaux de gris et pour un daltonien.
  */
 
-@theme {
-  --color-surface: #ffffff;
-  --color-surface-2: #f9fafb;
-  --color-surface-3: #f3f4f6;
-  --color-border: #e5e7eb;
-  --color-border-strong: #d1d5db;
-  --color-text: #111827;
-  --color-text-muted: #6b7280;
-  --color-text-faint: #9ca3af;
-  --color-accent: #1d4ed8;
-  --color-accent-soft: #eff6ff;
-  --color-danger: #b91c1c;
-  --color-danger-soft: #fef2f2;
-  --color-warn: #b45309;
-  --color-warn-soft: #fffbeb;
-  --color-success: #15803d;
-  --color-success-soft: #f0fdf4;
-}
-
 :root {
-  color-scheme: light;
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 1px 3px rgb(0 0 0 / 0.06);
-  --shadow-pop: 0 4px 12px rgb(0 0 0 / 0.08), 0 2px 4px rgb(0 0 0 / 0.04);
-}
+  /* Bleu ciel — couleur dominante */
+  --sky-50: #f0f9ff;
+  --sky-100: #e0f2fe;
+  --sky-200: #bae6fd;
+  --sky-300: #7dd3fc;
+  --sky-400: #38bdf8;
+  --sky-500: #0ea5e9; /* primaire : boutons, liens, focus */
+  --sky-600: #0284c7; /* hover */
+  --sky-700: #0369a1; /* texte bleu sur blanc (contraste AA) */
+  --sky-900: #0c4a6e;
 
-/* La salle video est le seul ecran sombre : un fond noir au milieu d'un
-   layout clair est le meilleur moyen de donner un aspect amateur. */
-.room-surface {
-  background: #0b0f19;
-  color: #e5e7eb;
+  /* Surfaces */
+  --bg: #f6fbfe;
+  --surface: #ffffff;
+  --surface-alt: #eef7fc;
+  --border: #dce9f2;
+  --border-strong: #bfd5e4;
+
+  /* Texte */
+  --text: #0f2a3d;
+  --text-muted: #55707f;
+  --text-faint: #7c93a1;
+  --text-on-primary: #ffffff;
+
+  /* Teintes semantiques : fond / texte / bordure */
+  --success-bg: #ddf5e8;
+  --success-fg: #0f6b3f;
+  --success-bd: #a8e3c3;
+  --info-bg: #e0f2fe;
+  --info-fg: #0369a1;
+  --info-bd: #9fd8f7;
+  --warn-bg: #fef1d2;
+  --warn-fg: #8a5a00;
+  --warn-bd: #f6d98a;
+  --danger-bg: #fde6e8;
+  --danger-fg: #b42332;
+  --danger-bd: #f5b5bb;
+  --neutral-bg: #edf2f6;
+  --neutral-fg: #4a5b68;
+  --neutral-bd: #d3dee6;
+  --accent-bg: #ece8ff;
+  --accent-fg: #4b3fb5;
+  --accent-bd: #cbc2fa;
+
+  /* Forme */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+  --shadow-sm: 0 1px 2px rgba(14, 80, 120, 0.06);
+  --shadow-md: 0 4px 16px rgba(14, 80, 120, 0.08);
+  --shadow-lg: 0 12px 32px rgba(14, 80, 120, 0.12);
+
+  /* Espacement (base 4px) */
+  --s-1: 4px;
+
+@theme inline {
+  --color-sky-50: var(--sky-50);
+  --color-sky-100: var(--sky-100);
+  --color-sky-200: var(--sky-200);
+  --color-sky-300: var(--sky-300);
+  --color-sky-400: var(--sky-400);
+  --color-sky-500: var(--sky-500);
+  --color-sky-600: var(--sky-600);
+  --color-sky-700: var(--sky-700);
+  --color-sky-900: var(--sky-900);
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface-alt);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+  --color-text-on-primary: var(--text-on-primary);
+
+  --color-success-bg: var(--success-bg);
+  --color-success-fg: var(--success-fg);
+  --color-success-bd: var(--success-bd);
+  --color-info-bg: var(--info-bg);
+  --color-info-fg: var(--info-fg);
+  --color-info-bd: var(--info-bd);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-fg: var(--warn-fg);
+  --color-warn-bd: var(--warn-bd);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-fg: var(--danger-fg);
+  --color-danger-bd: var(--danger-bd);
+  --color-neutral-bg: var(--neutral-bg);
+  --color-neutral-fg: var(--neutral-fg);
+  --color-neutral-bd: var(--neutral-bd);
+  --color-accent-bg: var(--accent-bg);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-bd: var(--accent-bd);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-pill: var(--radius-pill);
 }
 
 body {
-  background: var(--color-surface-3);
-  color: var(--color-text);
-  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Degrade tres leger : donne de la profondeur sans surcharger. */
+  background: linear-gradient(180deg, var(--sky-50), var(--bg) 320px);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: var(--font-sans);
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Respecte le reglage systeme : moins d'animation, moins de risque de
-   mal de vehicule sur un ecran de suivi utilise toute la journee. */
+/* Focus clavier visible partout (regle 0.7). Sans cela, la navigation au
+   clavier devient impossible — et le design n'en dit rien. */
+:focus-visible {
+  outline: 3px solid var(--sky-300);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Valeurs monetaires, ratios, jours : alignes en colonne, ils se comparent
+   d'un coup d'oeil (regle 0.3). */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+/* Le point pulsant d'une reunion en cours. Anime, donc neutralise des que
+   l'utilisateur demande moins d'animations. */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.live-dot {
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+
+/* La salle video est le SEUL ecran sombre (regle 0.8 et §9).
+   Bleu nuit plutot que noir : coherent avec la marque. */
+.room-surface {
+  --room-bg: #0b1b27;
+  --room-surface: #12293a;
+  --room-text: #e8f3fa;
+  --room-accent: #38bdf8;
+  background: var(--room-bg);
+  color: var(--room-text);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
-/* Les valeurs money/score utilisent des chiffres tabulaires : alignes en
-   colonne, ils se comparent d'un coup d'oeil. */
-.tnum {
-  font-variant-numeric: tabular-nums;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+
+  /* Typo */
+  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }

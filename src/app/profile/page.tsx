@@ -3,6 +3,7 @@ import { pageUser } from '@/lib/page';
 import { t } from '@/lib/i18n';
 import Shell from '@/components/Shell';
 import { Card, Empty, Badge, PageHeader } from '@/components/ui';
+import { ShieldCheck, ShieldOff, KeyRound, FileText } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,11 +82,11 @@ export default async function ProfilePage() {
         <Card title="Securite">
           <div className="flex flex-wrap items-center gap-2 px-4 py-3">
             {me?.mfa_enrolled === true ? (
-              <Badge tone="success">Double authentification active</Badge>
+              <Badge tone="success" Icon={ShieldCheck}>{t(user.locale, 'mfa.enrolled')}</Badge>
             ) : (
-              <Badge tone="warn">Double authentification inactive</Badge>
+              <Badge tone="warn" Icon={ShieldOff}>{t(user.locale, 'mfa.not_enrolled')}</Badge>
             )}
-            {me?.mfa_enforced === true && <Badge tone="info">imposee</Badge>}
+            {me?.mfa_enforced === true && <Badge tone="info" Icon={KeyRound}>{t(user.locale, 'mfa.enforced')}</Badge>}
           </div>
         </Card>
 

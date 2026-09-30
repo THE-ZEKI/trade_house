@@ -29,6 +29,7 @@
     "@tailwindcss/postcss": "^4.3.3",
     "@types/pdfkit": "^0.17.6",
     "bcryptjs": "^3.0.2",
+    "lucide-react": "^1.49.0",
     "next": "^15.5.0",
     "nodemailer": "^10.0.13",
     "pdfkit": "^0.20.2",

@@ -3,7 +3,8 @@ import { asUser, queryWith } from '@/lib/db';
 import { pageUser } from '@/lib/page';
 import { t } from '@/lib/i18n';
 import Shell from '@/components/Shell';
-import { Card, Empty, Badge, PageHeader } from '@/components/ui';
+import { Card, Empty, RsvpBadge, CodeBadge, PageHeader } from '@/components/ui';
+import { MEETING_STATUS, LINK_PROVIDER } from '@/lib/status';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,14 +89,7 @@ export default async function MeetingsPage() {
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
                     {isTrader ? (
-                      <Badge
-                        tone={
-                          m.rsvp_status === 'accepted' ? 'success'
-                            : m.rsvp_status === 'declined' ? 'danger' : 'neutral'
-                        }
-                      >
-                        {String(m.rsvp_status ?? 'pending')}
-                      </Badge>
+                      <RsvpBadge status={m.rsvp_status} locale={user.locale} />
                     ) : (
                       <span className="tnum text-xs text-text-faint">
                         {String(m.accepted_count ?? 0)}/{String(m.participants_count ?? 0)}
@@ -121,9 +115,7 @@ export default async function MeetingsPage() {
                     </Link>
                     <div className="tnum mt-0.5 text-xs text-text-faint">{fmtWhen(m.starts_at)}</div>
                   </div>
-                  <Badge tone={m.status === 'completed' ? 'success' : 'neutral'}>
-                    {String(m.status)}
-                  </Badge>
+                  <CodeBadge table={MEETING_STATUS} code={m.status} locale={user.locale} prefix="meeting" />
                 </li>
               ))}
             </ul>

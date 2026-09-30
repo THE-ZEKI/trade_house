@@ -4,6 +4,7 @@ import { pageUserAs } from '@/lib/page';
 import { t } from '@/lib/i18n';
 import Shell from '@/components/Shell';
 import { Card, Empty, Badge, PageHeader } from '@/components/ui';
+import { UserCheck, UserX, ShieldCheck, ShieldOff } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -79,18 +80,18 @@ export default async function UsersPage() {
                       </td>
                       <td className="px-4 py-3 text-text-muted">{String(u.email)}</td>
                       <td className="px-4 py-3">
-                        <Badge tone={u.role === 'admin' ? 'info' : 'neutral'}>
+                        <Badge tone={u.role === 'admin' ? 'accent' : 'neutral'} Icon={u.role === 'admin' ? ShieldCheck : UserCheck}>
                           {t(user.locale, `role.${u.role}`)}
                         </Badge>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap items-center gap-1">
                           {u.is_active === true ? (
-                            <Badge tone="success">actif</Badge>
+                            <Badge tone="success" Icon={UserCheck}>actif</Badge>
                           ) : (
-                            <Badge tone="danger">desactive</Badge>
+                            <Badge tone="danger" Icon={UserX}>desactive</Badge>
                           )}
-                          {u.mfa_enrolled === true && <Badge tone="info">2FA</Badge>}
+                          {u.mfa_enrolled === true && <Badge tone="info" Icon={ShieldCheck}>2FA</Badge>}
                         </div>
                       </td>
                       <td className="tnum px-4 py-3 text-text-muted">{String(u.reports_count ?? 0)}</td>

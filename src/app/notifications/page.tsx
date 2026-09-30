@@ -2,7 +2,9 @@ import { asUser, queryWith } from '@/lib/db';
 import { pageUser } from '@/lib/page';
 import { t } from '@/lib/i18n';
 import Shell from '@/components/Shell';
-import { Card, Empty, Badge, PageHeader } from '@/components/ui';
+import { Card, Empty, CodeBadge, PageHeader } from '@/components/ui';
+import { NOTIFY_STATUS, CHANNEL } from '@/lib/status';
+import { Dot, AlertTriangle } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,8 +63,8 @@ export default async function NotificationsPage() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className="text-sm">{String(n.event)}</span>
-                      {!n.read_at && n.status === 'sent' && <Badge tone="info">nouveau</Badge>}
-                      {n.status === 'failed' && <Badge tone="danger">echec</Badge>}
+                      
+                      
                     </div>
                     <div className="tnum mt-0.5 text-xs text-text-faint">
                       {fmt(n.created_at)} · {String(n.channel)}
@@ -74,9 +76,7 @@ export default async function NotificationsPage() {
                       </div>
                     ) : null}
                   </div>
-                  <span className="shrink-0 text-xs text-text-faint">
-                    {String(n.status)}
-                  </span>
+                  <CodeBadge table={NOTIFY_STATUS} code={n.status} locale={user.locale} prefix="send" />
                 </li>
               ))}
             </ul>

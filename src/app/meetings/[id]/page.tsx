@@ -3,7 +3,9 @@ import { notFound } from 'next/navigation';
 import { asUser, queryOneWith, queryWith } from '@/lib/db';
 import { pageUser } from '@/lib/page';
 import Shell from '@/components/Shell';
-import { Card, Empty, Badge, PageHeader } from '@/components/ui';
+import { Card, Empty, RsvpBadge, CodeBadge, PageHeader, Badge } from '@/components/ui';
+import { MEETING_STATUS, MEETING_TYPE, ATTENDANCE } from '@/lib/status';
+import { UserCheck, Repeat, Video } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,13 +79,11 @@ export default async function MeetingDetail({ params }: Params) {
         />
 
         <div className="flex flex-wrap items-center gap-2">
-          <Badge tone={meeting.status === 'completed' ? 'success' : 'info'}>
-            {String(meeting.status)}
-          </Badge>
-          <Badge tone="neutral">{String(meeting.type ?? 'meeting')}</Badge>
-          {accepted > 0 && <Badge tone="success">{accepted} confirme(s)</Badge>}
-          {meeting.recurrence_rule ? <Badge tone="neutral">recurrente</Badge> : null}
-          {meeting.recording_enabled === true ? <Badge tone="neutral">enregistrement</Badge> : null}
+          <CodeBadge table={MEETING_STATUS} code={meeting.status} locale={user.locale} prefix="meeting" />
+          <CodeBadge table={MEETING_TYPE} code={meeting.type} locale={user.locale} prefix="meeting" />
+          {accepted > 0 && <Badge tone="success" Icon={UserCheck}>{accepted} confirme(s)</Badge>}
+          {meeting.recurrence_rule ? <Badge tone="neutral" Icon={Repeat}>Recurrente</Badge> : null}
+          {meeting.recording_enabled === true ? <Badge tone="neutral" Icon={Video}>Enregistrement</Badge> : null}
         </div>
 
         <Card title="Details">
@@ -117,14 +117,7 @@ export default async function MeetingDetail({ params }: Params) {
                     <div className="truncate text-sm">{String(p.full_name)}</div>
                     <div className="truncate text-xs text-text-faint">{String(p.email)}</div>
                   </div>
-                  <Badge
-                    tone={
-                      p.rsvp_status === 'accepted' ? 'success'
-                        : p.rsvp_status === 'declined' ? 'danger' : 'neutral'
-                    }
-                  >
-                    {String(p.rsvp_status)}
-                  </Badge>
+                  <RsvpBadge status={p.rsvp_status} locale={user.locale} />
                 </li>
               ))}
             </ul>

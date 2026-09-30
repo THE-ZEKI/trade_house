@@ -4,7 +4,9 @@ import { asUser, queryOneWith, queryWith } from '@/lib/db';
 import { pageUser } from '@/lib/page';
 import { t } from '@/lib/i18n';
 import Shell from '@/components/Shell';
-import { Card, Empty, StatusBadge, Badge, PageHeader } from '@/components/ui';
+import { Card, Empty, StatusBadge, ReportFlags, PlanBadge, CodeBadge, PageHeader, Badge } from '@/components/ui';
+import { RESULT_TYPE } from '@/lib/status';
+import { Layers, MessageSquareWarning } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,13 +83,20 @@ export default async function ReportDetail({ params }: Params) {
 
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={String(report.status)} locale={user.locale} />
-          {report.is_no_trade === true && <Badge tone="neutral">pas de trading</Badge>}
-          {report.is_late === true && <Badge tone="warn">en retard</Badge>}
-
+          <ReportFlags
+            locale={user.locale}
+            isLate={report.is_late === true}
+            isCritical={report.is_critical === true}
+            isStale={report.is_stale === true}
+          />
+          <Badge tone="info" Icon={Layers}>version {String(report.current_version ?? 1)}</Badge>
+          {report.plan_respected !== null && report.plan_respected !== undefined && (
+            <PlanBadge respected={report.plan_respected === true} locale={user.locale} />
+          )}
+          {openCorrections > 0 && (
+            <Badge tone="danger" Icon={MessageSquareWarning}>{openCorrections} correctif(s)</Badge>
+          )}
         <div className="grid gap-4 lg:grid-cols-2">
-          {report.plan_respected === false && <Badge tone="warn">plan non respecte</Badge>}
-          <Badge tone="info">version {String(report.current_version ?? 1)}</Badge>
-          {openCorrections > 0 && <Badge tone="danger">{openCorrections} correctif(s)</Badge>}
         </div>
           <Card title="Donnees de session">
             <dl className="divide-y divide-border">
