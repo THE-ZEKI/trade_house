@@ -1,0 +1,75 @@
+# Verification des ecrans : chaque page, chaque role.
+# Objectif : attraper les 404 et les 500 avant que l'utilisateur ne les voie.
+
+param(
+  [string]$Base = 'http://127.0.0.1:3000'
+)
+
+$ErrorActionPreference = 'Stop'
+
+# Une page qui repond 200 mais affiche une erreur Next ne doit pas passer.
+# Attention : Next embarque la page 404 dans le bundle de CHAQUE route (le
+# composant _not-found fait partie du payload), donc ce texte apparait partout.
+# On ne controle donc que les marqueurs d'erreur de rendu et d'application.
+$ERREURS = @(
+  'Application error',
+  'Internal Server Error',
+  'Une erreur est survenue',
+  'Erreur de rendu'
+)
+
+function Login([string]$email, [string]$password) {
+  $s = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+  $body = @{ email = $email; password = $password } | ConvertTo-Json
+  $r = Invoke-WebRequest -Uri "$Base/api/auth/login" -Method POST -Body $body `
+       -ContentType 'application/json' -WebSession $s -UseBasicParsing -TimeoutSec 20
+  return $s
+}
+
+function Test-Page($s, [string]$path) {
+  try {
+    $r = Invoke-WebRequest -Uri "$Base$path" -WebSession $s -UseBasicParsing -TimeoutSec 25
+    $code = $r.StatusCode
+    $body = $r.Content
+  } catch {
+    $code = [int]$_.Exception.Response.StatusCode
+    $body = ''
+    # un 500 reste a examiner : le corps contient le motif de l'erreur
+    try { $body = $_.Exception.Response.GetResponseStream() } catch {}
+  }
+  $ko = $false
+  foreach ($e in $ERREURS) {
+    if ($body -is [string] -and $body -like "*$e*") { $ko = $true; Write-Host "    ! marqueur '$e'" }
+  }
+  $flag = if ($code -ne 200) { 'ECHEC' } elseif ($ko) { 'ALERTE' } else { 'ok' }
+  "{0,-8} {1,-3} {2}" -f $flag, $code, $path
+}
+
+$reportId  = $env:TH_REPORT_ID
+$meetingId = $env:TH_MEETING_ID
+$traderId  = $env:TH_TRADER_ID
+
+$ACCOUNTS = @(
+  @{ role = 'admin';   email = 'admin@trade-house.local';   mdp = 'Admin!2345' },
+  @{ role = 'manager'; email = 'manager@trade-house.local'; mdp = 'Manager!2345' },
+  @{ role = 'trader';  email = 'trader1@trade-house.local';  mdp = 'Trader!2345' }
+)
+
+foreach ($a in $ACCOUNTS) {
+  Write-Host ''
+  Write-Host "=== $($a.role) : $($a.email) ==="
+  try {
+    $s = Login $a.email $a.mdp
+  } catch {
+    Write-Host "  ECHEC connexion : $($_.Exception.Message)"
+    continue
+  }
+
+  $paths = @('/', '/reports', '/meetings', '/profile', '/notifications')
+  if ($a.role -eq 'admin') { $paths += @('/users', '/audit', '/settings') }
+  if ($a.role -in @('admin', 'manager')) { $paths += @("/traders/$traderId") }
+  if ($reportId)  { $paths += "/reports/$reportId" }
+  if ($meetingId) { $paths += "/meetings/$meetingId" }
+
+  foreach ($p in $paths) { Test-Page $s $p }
+}

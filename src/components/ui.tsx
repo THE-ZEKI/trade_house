@@ -122,3 +122,58 @@ export function Empty({ children }: { children: ReactNode }) {
     <p className="px-4 py-8 text-center text-sm text-text-faint">{children}</p>
   );
 }
+
+/** En-tete d'ecran : titre, sous-titre eventuel, actions a droite. */
+export function PageHeader({
+  title,
+  subtitle,
+  actions,
+}: {
+  title: string;
+  subtitle?: string;
+  actions?: ReactNode;
+}) {
+  return (
+    <header className="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+        {subtitle && <p className="mt-0.5 text-sm text-text-muted">{subtitle}</p>}
+      </div>
+      {actions && <div className="flex items-center gap-2">{actions}</div>}
+    </header>
+  );
+}
+
+/**
+ * Tableau de donnees.
+ *
+ * Volontairement simple : des div, pas un composant de tableau. Un tableau de
+ * bord de trading comporte rarement plus de cinq colonnes, et le HTML natif
+ * (`<table>`) reste plus accessible qu'une grille de `div` pour un lecteur
+ * d'ecran.
+ */
+export function DataTable({
+  head,
+  children,
+}: {
+  head: string[];
+  children: ReactNode;
+}) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-border text-left text-xs text-text-faint">
+            {head.map((h) => (
+              <th key={h} className="whitespace-nowrap px-4 py-2 font-medium">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">{children}</tbody>
+      </table>
+    </div>
+  );
+}
+

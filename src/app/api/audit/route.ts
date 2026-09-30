@@ -1,4 +1,4 @@
-import { asUser, queryWith, queryOne } from '@/lib/db';
+import { asUser, queryWith, queryOneWith } from '@/lib/db';
 import { jsonError, jsonOk } from '@/lib/http';
 import { requireUser } from '@/lib/auth';
 
@@ -53,7 +53,7 @@ export async function GET(request: Request) {
 
     // le nombre total sert a l'interface pour afficher « 1 sur N »
     const total = await asUser(user.userId, (sql) =>
-      queryOne<{ n: number }>('select count(*)::int as n from public.audit_log'),
+      queryOneWith<{ n: number }>(sql, 'select count(*)::int as n from public.audit_log'),
     );
 
     // alphabet des actions rencontrees : alimente un menu de filtre

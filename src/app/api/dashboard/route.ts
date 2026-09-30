@@ -1,4 +1,4 @@
-import { asUser, query, queryOne, queryWith } from '@/lib/db';
+import { asUser, query, queryOne, queryOneWith, queryWith } from '@/lib/db';
 import { jsonError, jsonOk } from '@/lib/http';
 import { requireUser } from '@/lib/auth';
 
@@ -122,7 +122,8 @@ export async function GET() {
     }));
 
     const totals = await asUser(user.userId, (sql) =>
-      queryOne<{ to_review: number; corrections_open: number; overdue: number }>(
+      queryOneWith<{ to_review: number; corrections_open: number; overdue: number }>(
+        sql,
         `select
            (select count(*)::int from public.v_report_worklist
              where status in ('submitted','resubmitted')) as to_review,
