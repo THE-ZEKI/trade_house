@@ -30,3 +30,4 @@ tsconfig.tsbuildinfo
 __pycache__/
 # Artefacts de compilation des tests
 .tmp-totp/
+.tmp-email/

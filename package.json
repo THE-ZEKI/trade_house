@@ -16,11 +16,13 @@
     "db:test": "powershell -ExecutionPolicy Bypass -File db/test.ps1 -Password $env:PGPASSWORD",
     "db:validate": "python db/tools/validate_sql.py && python db/tools/validate_schema.py",
     "test:phase1": "powershell -ExecutionPolicy Bypass -File scripts/test-phase1.ps1",
-    "verify:crypto": "tsc src/lib/totp.ts src/lib/crypto.ts --outDir .tmp-totp --module commonjs --target es2022 --skipLibCheck --esModuleInterop && node scripts/verify-totp.cjs"
+    "verify:crypto": "tsc src/lib/totp.ts src/lib/crypto.ts --outDir .tmp-totp --module commonjs --target es2022 --skipLibCheck --esModuleInterop && node scripts/verify-totp.cjs",
+    "verify:email": "tsc src/lib/email.ts --outDir .tmp-email --module commonjs --target es2022 --moduleResolution node --skipLibCheck --esModuleInterop && node scripts/verify-email.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "next": "^15.5.0",
+    "nodemailer": "^10.0.13",
     "pg": "^8.16.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
@@ -28,6 +30,7 @@
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^24.0.0",
+    "@types/nodemailer": "^7.0.0",
     "@types/pg": "^8.15.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",

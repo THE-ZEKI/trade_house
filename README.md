@@ -35,6 +35,36 @@ sans cela, psql sous Windows peut afficher des messages d'erreur illisibles.
 
 ## Tests et outillage
 
+### Fournisseur d'emails
+
+`EMAIL_PROVIDER` choisit l'adaptateur, **sans changer une ligne de logique métier** :
+
+| Valeur | Quand | Prérequis |
+|---|---|---|
+| `log` | développement | aucun — le message est écrit dans la sortie du serveur |
+| `resend` | Vercel (recommandé) | `RESEND_API_KEY` + URL de webhook déclarée chez Resend pour les bounces |
+| `smtp` | Postfix auto-hébergé, ou SMTP fourni par l'hébergeur | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` |
+
+```powershell
+npm run verify:email                      # valide l'adaptateur configuré
+$env:EMAIL_PROVIDER='smtp'; npm run verify:email   # vérifie aussi le cas "SMTP injoignable"
+```
+
+Un échec d'envoi **ne lève jamais d'exception** : `sendEmail` renvoie `{ delivered: false, error }`,
+le job cron journalise l'erreur et planifie les 3 relances de RG-16.
+
+⚠️ Avec `smtp`, un envoi « accepté » signifie seulement que le serveur l'a pris (réponse 250).
+Les bounces arrivent plus tard et **asynchronement** : sans webhook (bounce pipe Postfix,
+ou SES/SNS si vous passez par AWS), `notifications_log.error_message` et `opened_at`
+resteront vides. C'est le principal argument en faveur de l'API HTTP sur Vercel.
+
+### delivering — à faire au déploiement
+
+Quel que soit le fournisseur : domaine d'envoi dédié, `SPF`, `DKIM`, `DMARC`,
+`Return-Path` personnalisé. Un SMTP mal configuré atterrit en spam tout comme une API.
+
+### Base et application
+
 ```powershell
 # tout-en-un : validation statique + recreation de la base + installation + 67 assertions
 .\db\test.ps1 -Password 'votre_mot_de_passe'
