@@ -1,101 +1,173 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { currentUser, requireUser, logout } from '@/lib/auth';
-import LogoutButton from './LogoutButton';
+import { currentUser } from '@/lib/auth';
+import { getDashboard } from '@/lib/dashboard';
+import { t } from '@/lib/i18n';
+import Shell from '@/components/Shell';
+import { Card, Empty, Stat, StatusBadge, Badge } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
-const phases = [
-  { n: 1, titre: 'Socle & authentification', etat: 'en cours' },
-  { n: 2, titre: 'Reunions & rappels', etat: 'a venir' },
-  { n: 3, titre: 'Rapports & cycle de correction', etat: 'a venir' },
-  { n: 4, titre: 'Visio, tableau de bord & production', etat: 'a venir' },
-];
+export const metadata = { title: 'Tableau de bord — Trade House' };
 
 /**
- * Accueil temporaire de la phase 1.
- * Cette page exige une session valide en base : c'est la vraie barriere,
- * le middleware ne fait que la commodite de navigation.
+ * Tableau de bord (F1 pour admin/manager, F3 pour trader).
+ *
+ * Composant serveur : les donnees sont lues en base dans le contexte de
+ * l'utilisateur, jamais via fetch sur notre propre API. L'API reste ouverte
+ * pour un client mobile ou une integration tierce.
  */
 export default async function Home() {
-  // si requireUser leve une erreur 401, on renvoie vers l'ecran de connexion
   let user: Awaited<ReturnType<typeof currentUser>> = null;
   try {
-    user = await requireUser();
+    user = await currentUser();
   } catch {
     redirect('/login');
   }
   if (!user) redirect('/login');
 
+  const data = await getDashboard(user);
+  const isTrader = user.role === 'trader';
+  const isEn = user.locale === 'en';
+
+  const fmtDate = (v: unknown) =>
+    v ? new Date(String(v)).toLocaleDateString(isEn ? 'en-GB' : 'fr-FR') : '-';
+  const fmtWhen = (v: unknown) =>
+    v
+      ? new Date(String(v)).toLocaleString(isEn ? 'en-GB' : 'fr-FR', {
+          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+        })
+      : '-';
+
   return (
-    <main style={{ maxWidth: 720, margin: '0 auto' }}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          gap: 16,
-        }}
-      >
-        <div>
-          <h1 style={{ fontSize: 28, marginBottom: 4 }}>Trade House</h1>
-          <p style={{ color: '#6b7280', marginTop: 0 }}>
-            Connecte en tant que <strong>{user.fullName}</strong> ({user.role}) —{' '}
-            {user.email}
+    <Shell user={user}>
+      <div className="space-y-6">
+        <header>
+          <h1 className="text-xl font-semibold tracking-tight">{t(user.locale, 'nav.dashboard')}</h1>
+          <p className="mt-0.5 text-sm text-text-muted">
+            {user.fullName} — {t(user.locale, `role.${user.role}`)}
           </p>
+        </header>
+
+        {/* Chiffres cles : ce qu'un superviseur veut voir sans cliquer. */}
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {isTrader ? (
+            <>
+              <Stat label={t(user.locale, 'dash.my_drafts')} value={data.totals.drafts} />
+              <Stat
+                label={t(user.locale, 'dash.my_corrections')}
+                value={data.totals.corrections_open}
+                tone={data.totals.corrections_open > 0 ? 'warn' : 'neutral'}
+              />
+            </>
+          ) : (
+            <>
+              <Stat label={t(user.locale, 'dash.to_review')} value={data.totals.to_review} />
+              <Stat
+                label={t(user.locale, 'dash.corrections')}
+                value={data.totals.corrections_open}
+                tone={data.totals.corrections_open > 0 ? 'warn' : 'neutral'}
+              />
+              <Stat
+                label={t(user.locale, 'dash.overdue')}
+                value={data.totals.overdue}
+                tone={data.totals.overdue > 0 ? 'danger' : 'neutral'}
+              />
+              <Stat label={t(user.locale, 'dash.silent')} value={data.silent.length} />
+            </>
+          )}
         </div>
-        <LogoutButton />
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          {/* File de revision, ou rapports a traiter pour le trader */}
+          <Card
+            title={isTrader ? t(user.locale, 'dash.my_drafts') : t(user.locale, 'dash.to_review')}
+            action={
+              <Link href="/reports" className="text-xs text-accent hover:underline">
+                {t(user.locale, 'action.view')}
+              </Link>
+            }
+          >
+            {data.reports.length === 0 ? (
+              <Empty>{t(user.locale, 'empty.reports')}</Empty>
+            ) : (
+              <ul className="divide-y divide-border">
+                {data.reports.slice(0, 8).map((r) => (
+                  <li key={String(r.id)} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <div className="min-w-0">
+                      <Link href={`/reports/${r.id}`} className="block truncate text-sm hover:underline">
+                        {fmtDate(r.session_date)}
+                        {r.instrument ? ` · ${String(r.instrument)}` : ''}
+                      </Link>
+                      <div className="tnum mt-0.5 text-xs text-text-faint">
+                        {String(r.trader_name ?? '')}
+                        {r.hours_since_submission ? ` · ${Math.round(Number(r.hours_since_submission))} h` : ''}
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      {r.is_critical === true && <Badge tone="danger">critique</Badge>}
+                      {r.is_overdue === true && <Badge tone="warn">en retard</Badge>}
+                      {r.is_stale === true && <Badge tone="warn">obsolete</Badge>}
+                      <StatusBadge status={String(r.status)} locale={user.locale} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <Card title={t(user.locale, 'dash.upcoming')}>
+            {data.meetings.length === 0 ? (
+              <Empty>{t(user.locale, 'empty.meetings')}</Empty>
+            ) : (
+              <ul className="divide-y divide-border">
+                {data.meetings.map((m) => (
+                  <li key={String(m.id)} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <div className="min-w-0">
+                      <Link href={`/meetings/${m.id}`} className="block truncate text-sm hover:underline">
+                        {String(m.title)}
+                      </Link>
+                      <div className="tnum mt-0.5 text-xs text-text-faint">{fmtWhen(m.starts_at)}</div>
+                    </div>
+                    {isTrader ? (
+                      <Badge
+                        tone={
+                          m.rsvp_status === 'accepted' ? 'success'
+                            : m.rsvp_status === 'declined' ? 'danger' : 'neutral'
+                        }
+                      >
+                        {String(m.rsvp_status ?? 'pending')}
+                      </Badge>
+                    ) : (
+                      <span className="tnum shrink-0 text-xs text-text-faint">
+                        {String(m.accepted_count ?? 0)}/{String(m.participants_count ?? 0)}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
+
+        {/* F1 : les silences. L'indicateur qui declenche une relance. */}
+        {!isTrader && data.silent.length > 0 && (
+          <Card title="Traders sans rapport recent">
+            <ul className="divide-y divide-border">
+              {data.silent.slice(0, 6).map((s) => (
+                <li key={String(s.id)} className="flex items-center justify-between gap-3 px-4 py-3">
+                  <Link href={`/traders/${s.id}`} className="truncate text-sm hover:underline">
+                    {String(s.full_name)}
+                  </Link>
+                  <span className="tnum shrink-0 text-xs text-warn">
+                    {s.last_report_date ? `${Number(s.days_since)} j` : 'jamais'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
       </div>
-
-      <section
-        style={{
-          background: '#fff',
-          border: '1px solid #e5e7eb',
-          borderRadius: 12,
-          padding: 20,
-          margin: '24px 0',
-        }}
-      >
-        <h2 style={{ fontSize: 16, marginTop: 0 }}>Base de donnees</h2>
-        <p style={{ margin: 0 }}>
-          Etat : <code>GET /api/health</code> — connexion et efficacite du RLS.
-        </p>
-        <p style={{ margin: '8px 0 0', color: '#6b7280', fontSize: 13 }}>
-          Les requetes de cette page passent par <code>asUser()</code> : PostgreSQL filtre les
-          lignes selon le role (RG-04, RG-06).
-        </p>
-      </section>
-
-      <section
-        style={{
-          background: '#fff',
-          border: '1px solid #e5e7eb',
-          borderRadius: 12,
-          padding: 20,
-        }}
-      >
-        <h2 style={{ fontSize: 16, marginTop: 0 }}>Decoupage</h2>
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {phases.map((p) => (
-            <li
-              key={p.n}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                padding: '8px 0',
-                borderBottom: '1px solid #f3f4f6',
-              }}
-            >
-              <span>
-                <strong>{p.n}.</strong> {p.titre}
-              </span>
-              <span style={{ color: p.etat === 'en cours' ? '#2563eb' : '#9ca3af' }}>
-                {p.etat}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
-    </main>
+    </Shell>
   );
 }
-

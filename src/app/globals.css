@@ -1,0 +1,67 @@
+@import 'tailwindcss';
+
+/**
+ * Trade House — fondations visuelles.
+ *
+ * Les couleurs sont des variables CSS, pas des classes en dur : le mode sombre
+ * et, plus tard, une charte differente se changent ici sans toucher aux
+ * composants. Les statuts de rapport ont chacun une teinte, reprise a
+ * l'identique dans le PDF et dans l'interface (RG-53 : le code est stocke,
+ * la couleur est une convention de presentation, jamais une donnee).
+ */
+
+@theme {
+  --color-surface: #ffffff;
+  --color-surface-2: #f9fafb;
+  --color-surface-3: #f3f4f6;
+  --color-border: #e5e7eb;
+  --color-border-strong: #d1d5db;
+  --color-text: #111827;
+  --color-text-muted: #6b7280;
+  --color-text-faint: #9ca3af;
+  --color-accent: #1d4ed8;
+  --color-accent-soft: #eff6ff;
+  --color-danger: #b91c1c;
+  --color-danger-soft: #fef2f2;
+  --color-warn: #b45309;
+  --color-warn-soft: #fffbeb;
+  --color-success: #15803d;
+  --color-success-soft: #f0fdf4;
+}
+
+:root {
+  color-scheme: light;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 1px 3px rgb(0 0 0 / 0.06);
+  --shadow-pop: 0 4px 12px rgb(0 0 0 / 0.08), 0 2px 4px rgb(0 0 0 / 0.04);
+}
+
+/* La salle video est le seul ecran sombre : un fond noir au milieu d'un
+   layout clair est le meilleur moyen de donner un aspect amateur. */
+.room-surface {
+  background: #0b0f19;
+  color: #e5e7eb;
+}
+
+body {
+  background: var(--color-surface-3);
+  color: var(--color-text);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Respecte le reglage systeme : moins d'animation, moins de risque de
+   mal de vehicule sur un ecran de suivi utilise toute la journee. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Les valeurs money/score utilisent des chiffres tabulaires : alignes en
+   colonne, ils se comparent d'un coup d'oeil. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}

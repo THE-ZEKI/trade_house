@@ -24,14 +24,18 @@
     "verify:room": "tsc src/lib/room-token.ts --outDir .tmp-room --module commonjs --target es2022 --moduleResolution node --skipLibCheck --esModuleInterop && node --env-file=.env.local scripts/verify-room.mjs"
   },
   "dependencies": {
+    "@daily-co/daily-js": "^0.92.2",
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/pdfkit": "^0.17.6",
     "bcryptjs": "^3.0.2",
     "next": "^15.5.0",
     "nodemailer": "^10.0.13",
     "pdfkit": "^0.20.2",
     "pg": "^8.16.0",
+    "postcss": "^8.5.28",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
