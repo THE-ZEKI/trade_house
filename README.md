@@ -63,7 +63,51 @@ resteront vides. C'est le principal argument en faveur de l'API HTTP sur Vercel.
 Quel que soit le fournisseur : domaine d'envoi dédié, `SPF`, `DKIM`, `DMARC`,
 `Return-Path` personnalisé. Un SMTP mal configuré atterrit en spam tout comme une API.
 
-### Base et application
+### API disponibles
+
+Toutes les regles metier vivent en base (fonctions `app.*` en `SECURITY DEFINER` + RLS).
+Les routes ne font que valider l'entree et traduire la reponse.
+
+| Domaine | Route | Regles |
+|---|---|---|
+| Auth | `/api/auth/*` | RG-01 a RG-09, RG-20 a RG-30 |
+| Comptes | `GET/POST /api/users`, `GET/PATCH /api/users/:id` | A2, A3, RG-02, RG-05, RG-06 |
+| Profil | `PATCH /api/me` | A4, RG-53 |
+| Notifications | `GET/PUT /api/me/notifications` | F4 |
+| Reunions | `/api/meetings/*` | B1 a B10, RG-10 a RG-26 |
+| Rapports | `/api/reports/*` | D1 a D7, E1 a E7, RG-30 a RG-50 |
+| Export | `GET /api/reports/export` (CSV), `GET /api/reports/:id/pdf` | D6 |
+| Tableau de bord | `GET /api/dashboard` | F1, F3 |
+| Fiche trader | `GET /api/traders/:id` | F2 |
+| Audit | `GET /api/audit` | F5 (admin seul) |
+| Reglages | `GET/PATCH /api/settings` | RG-06 (admin seul) |
+| Cron | `POST /api/cron/send-reminders` | RG-52 |
+
+**Restant a faire** : module C (visioconference). Ce n'est pas une API mais un
+service tiers (Daily.co ou LiveKit) : C1 a C8 demandent un fournisseur heberge,
+des jetons de salle a duree de vie limitee (C4) et l'enregistrement (C7).
+
+### Export PDF (D6)
+
+Genere par `src/lib/pdf.ts` (PDFKit), sans navigateur ni Chromium a deployer.
+La police Helvetica est integree a la bibliotheque : aucune police a embarquer,
+et les accents francais passent par l'encodage WinAnsi.
+
+```powershell
+npm run verify:export
+```
+
+Points a connaaitre :
+- seules les images **PNG et JPEG** sont incorporees ; les PDF et WebP sont
+  listes dans l'inventaire mais pas affiches (PDFKit ne les gere pas) ;
+- les emojis sont retires a la generation, ils n'existent pas en WinAnsi ;
+- un rapport invisible renvoie 404, jamais un PDF vide : le canal de telechargement
+  ne peut pas contourner le RLS.
+
+### Stockage des fichiers
+
+`.storage/` en developpement, hors de `public/`. En production, basculer
+`storage_provider` sur `s3` ou `supabase` (reglages) et brancher l'adaptateur.
 
 ```powershell
 # tout-en-un : validation statique + recreation de la base + installation + 67 assertions

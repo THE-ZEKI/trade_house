@@ -33,3 +33,4 @@ __pycache__/
 .tmp-email/
 .storage/
 .tmp-storage/
+.tmp-pdf/

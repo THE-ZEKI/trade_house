@@ -62,7 +62,7 @@ function Assert-NoSqlError {
   }
 }
 
-function Psql-Value {
+function PsqlValue {
   param([string]$Sql, [string]$Contexte = 'lecture')
   $out = Psql ('-tAc "' + ($Sql -replace '"', '\"') + '"') $DbName
   Assert-NoSqlError $out $Contexte
@@ -71,7 +71,7 @@ function Psql-Value {
 
 # --- test de connexion, avant toute chose ---------------------------------
 Write-Host '== Verification de la connexion =='
-$who = Psql-Value "select current_user" 'connexion'
+$who = PsqlValue "select current_user" 'connexion'
 if (-not $who) {
   throw @"
 Connexion impossible en tant que « $DbUser » sur $Host_`:$Port.
@@ -93,7 +93,7 @@ Write-Host ''
 Write-Host "== Migrations ($($files.Count) fichiers) =="
 
 # --- table de suivi -------------------------------------------------------
-$journalExists = Psql-Value "select count(*) from information_schema.tables where table_schema='app' and table_name='schema_migrations'"
+$journalExists = PsqlValue "select count(*) from information_schema.tables where table_schema='app' and table_name='schema_migrations'"
 if ($journalExists -ne '1') {
   $out = Psql '-q -c "create table if not exists app.schema_migrations (version text primary key, applied_at timestamptz not null default now())"' $DbName
   Assert-NoSqlError $out 'creation du journal'
@@ -101,8 +101,12 @@ if ($journalExists -ne '1') {
 }
 
 if (-not $Baseline) {
-  $hasTables = Psql-Value "select count(*) from information_schema.tables where table_schema='public'"
-  if ($hasTables -gt '0') {
+  # Le journal n'est vraiment problematique que s'il est VIDE alors que la base
+  # contient deja des tables : on ne sait alors pas jusqu'ou l'installation est
+  # allee, et rejouer 001..N a l'aveugle serait destructeur.
+  $journalCount = PsqlValue "select count(*) from app.schema_migrations" 'lecture du journal'
+  $hasTables = PsqlValue "select count(*) from information_schema.tables where table_schema='public'" 'lecture du schema'
+  if (([int]$journalCount) -eq 0 -and ([int]$hasTables) -gt 0) {
     $last = (($files | Select-Object -Last 1).BaseName)
     throw @"
 La base est deja installee mais le journal est vide : on ne sait pas jusqu'ou
@@ -114,7 +118,6 @@ connue, par exemple :
 (Sans cet argument, le script refuserait de rejouer 001..$last a l'aveugle.)
 "@
   }
-  Write-Host 'base vierge : toutes les migrations seront appliquees'
 }
 
 if ($Baseline) {
@@ -132,7 +135,7 @@ if ($Reset) {
   Write-Host 'journal remis a zero (-Reset) : toutes les migrations seront rejouees'
 }
 
-$joined = Psql-Value "select string_agg(version, ',') from app.schema_migrations"
+$joined = PsqlValue "select string_agg(version, ',') from app.schema_migrations"
 $installed = @()
 if ($joined -and ($joined -ne '')) { $installed = $joined.Split(',') }
 
