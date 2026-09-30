@@ -35,7 +35,7 @@ begin
   insert into public.users (email, password_hash, full_name, role, timezone, preferred_locale)
   -- " ! " + alea : hash inexploitable tant qu'aucun mot de passe n'est defini.
   -- L'admin ne peut donc pas encore se connecter : il passe par la procedure
-  -- habituelle « mot de passe oublie » de la phase 1, qui lui envoie un lien
+  -- habituelle "mot de passe oublie" de la phase 1, qui lui envoie un lien
   -- a usage unique. Aucun mot de passe en clair ne transite jamais.
   values (p_email, '!' || encode(gen_random_bytes(32), 'hex'), btrim(p_full_name),
           'admin', 'Europe/Paris', 'fr')
