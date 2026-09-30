@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 trade_house Â· tools/validate_schema.py
 
@@ -69,6 +69,8 @@ EXPECTED_FUNCTIONS = {
     # durcissement (012_security)
     "record_auth_attempt", "check_auth_throttle", "consume_totp_step",
     "purge_auth_attempts",
+    # phase 2 (013_reminders)
+    "reclaim_stuck_reminders", "reminders_health",
 }
 
 

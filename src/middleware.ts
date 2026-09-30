@@ -26,6 +26,9 @@ const PUBLIC_API = [
   '/api/auth/password/forgot',
   '/api/auth/password/reset',
   '/api/auth/mfa/challenge',
+  // les jobs cron s'authentifient eux-memes via l'en-tete Authorization
+  // et le secret CRON_SECRET (cf. src/app/api/cron/send-reminders/route.ts)
+  '/api/cron',
   '/api/health',
 ];
 

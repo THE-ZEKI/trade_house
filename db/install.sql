@@ -22,6 +22,7 @@
 \i migrations/010_auth.sql
 \i migrations/011_mfa.sql
 \i migrations/012_security.sql
+\i migrations/013_reminders.sql
 
 \echo ''
 \echo '=== Installation terminee ==='

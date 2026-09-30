@@ -171,6 +171,10 @@ const APP_FUNCTIONS = new Set([
   'app.claim_due_reminders',
   'app.prepare_reminder',
   'app.complete_reminder',
+  'app.reclaim_stuck_reminders',
+  'app.pending_reminder_targets',
+  'app.mark_notification_sent',
+  'app.mark_notification_failed',
 ]);
 
 export async function callApp<T = QueryResultRow>(
@@ -189,4 +193,28 @@ export async function callApp<T = QueryResultRow>(
   const res = await sql.query(sqlText, args as unknown[]);
   const row = res.rows[0] as { result: T } | undefined;
   return row ? row.result : null;
+}
+
+/**
+ * Variante pour les fonctions qui renvoient PLUSIEURS lignes
+ * (app.claim_due_reminders ...).
+ *
+ * Attention : une fonction renvoyant un ensemble, appelée dans la liste SELECT,
+ * produit une ligne par élément — to_jsonb n'en convertirait qu'un seul. Il faut
+ * donc expliciter l'agrégation.
+ */
+export async function callAppSet<T = QueryResultRow>(
+  sql: Sql,
+  fnName: string,
+  args: readonly unknown[] = [],
+): Promise<T[]> {
+  if (!APP_FUNCTIONS.has(fnName)) {
+    throw new Error(`Fonction non autorisee : ${fnName}`);
+  }
+  const placeholders = args.map((_, i) => `$${i + 1}`).join(', ');
+  const sqlText = `select coalesce(to_jsonb(array_agg(t)), '[]'::jsonb) as result
+                     from ${fnName}(${placeholders}) as t`;
+  const res = await sql.query(sqlText, args as unknown[]);
+  const row = res.rows[0] as { result: T[] } | undefined;
+  return row?.result ?? [];
 }

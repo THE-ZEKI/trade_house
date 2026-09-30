@@ -254,8 +254,12 @@ begin
   return new;
 end $$;
 
+-- RG-14 : un rappel ne peut pas etre programme dans le passe.
+-- Le declencheur ne surveille QUE send_at : repasser un rappel en file
+-- (reprise apres incident) ne doit pas etre confondu avec une nouvelle
+-- programmation dans le passe.
 create trigger meeting_reminders_guard_trg
-  before insert or update on public.meeting_reminders
+  before insert or update of send_at on public.meeting_reminders
   for each row execute function app.fn_reminder_guard();
 
 -- RG-06 : un manager n'invite que ses propres traders
