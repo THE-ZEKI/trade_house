@@ -21,7 +21,8 @@
     "verify:email": "tsc src/lib/email.ts --outDir .tmp-email --module commonjs --target es2022 --moduleResolution node --skipLibCheck --esModuleInterop && node scripts/verify-email.mjs",
     "verify:reports": "tsc src/lib/storage.ts --outDir .tmp-storage --module commonjs --target es2022 --moduleResolution node --skipLibCheck --esModuleInterop && node --env-file=.env.local scripts/verify-reports.mjs",
     "verify:export": "tsc src/lib/pdf.ts --outDir .tmp-pdf --module commonjs --target es2022 --moduleResolution node --skipLibCheck --esModuleInterop && node scripts/verify-export.mjs",
-    "verify:room", "check:pages": "tsc src/lib/room-token.ts --outDir .tmp-room --module commonjs --target es2022 --moduleResolution node --skipLibCheck --esModuleInterop && node --env-file=.env.local scripts/verify-room.mjs"
+    "verify:room": "tsc src/lib/room-token.ts --outDir .tmp-room --module commonjs --target es2022 --moduleResolution node --skipLibCheck --esModuleInterop && node --env-file=.env.local scripts/verify-room.mjs",
+    "check:pages": "powershell -ExecutionPolicy Bypass -File scripts/check-pages.ps1"
   },
   "dependencies": {
     "@daily-co/daily-js": "^0.92.2",
