@@ -1,0 +1,35 @@
+{
+  "name": "trade-house",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Plateforme de gestion et de suivi de traders",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "db:install": "powershell -ExecutionPolicy Bypass -File db/setup.ps1 -Password $env:PGPASSWORD",
+    "db:test": "powershell -ExecutionPolicy Bypass -File db/test.ps1 -Password $env:PGPASSWORD",
+    "db:validate": "python db/tools/validate_sql.py && python db/tools/validate_schema.py"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "next": "^15.5.0",
+    "pg": "^8.16.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.15.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "typescript": "^5.9.0"
+  }
+}

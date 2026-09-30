@@ -1,0 +1,29 @@
+﻿# Fichiers de travail
+db/*.sql.out
+db/rls.sql
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js
+.next/
+out/
+build/
+next-env.d.ts
+
+# Variables d'environnement
+.env
+.env.local
+.env.*.local
+
+# Cluster PostgreSQL jetable de test
+.pgtest/
+
+db/*.log
+
+# Divers
+.DS_Store
+*.log
+.vscode/
+.idea/
+__pycache__/
