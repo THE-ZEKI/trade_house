@@ -1,9 +1,9 @@
-import { asUser, callApp, queryOne, withTransaction } from '@/lib/db';
+import { callApp, queryOne, withTransaction } from '@/lib/db';
 import { jsonError, jsonOk } from '@/lib/http';
-import { requestMeta, startSession } from '@/lib/auth';
+import { checkThrottle, recordAttempt, requestMeta, startSession } from '@/lib/auth';
 import { decryptSecret } from '@/lib/crypto';
 import { hashToken } from '@/lib/session';
-import { verifyCode } from '@/lib/totp';
+import { matchStep } from '@/lib/totp';
 import { newSessionToken, sessionTtlHours } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
@@ -44,22 +44,46 @@ export async function POST(request: Request) {
     // meme message dans tous les cas : ni le compte ni la 2FA ne sont divulgues
     const fail = () =>
       jsonOk({ error: { code: 'UNAUTHENTICATED', message: 'Code invalide', rule: 'A5' } }, 401);
+
+    const ip = (await requestMeta()).ip;
+    // le nombre de tentatives de 2FA est lui aussi plafonne (012_security.sql)
+    try {
+      await checkThrottle(body.email, ip, 'mfa_challenge');
+    } catch {
+      return fail();
+    }
     if (!account?.is_active || !account.secret) return fail();
 
-    let valid = verifyCode(decryptSecret(account.secret).toString('ascii'), body.code);
+    // Le pas TOTP est identifie puis consomme : un code deja utilise est rejete
+    const step = matchStep(decryptSecret(account.secret).toString('ascii'), body.code);
     let usedBackupCode = false;
+    let valid = false;
+
+    if (step !== null) {
+      const fresh = await withTransaction((sql) =>
+        callApp<boolean>(sql, 'app.consume_totp_step', [account.user_id, step]),
+      );
+      valid = fresh === true;
+    }
 
     if (!valid) {
       // le code peut etre un code de secours
       const consumed = await withTransaction((sql) =>
-        callApp<boolean>(sql, 'app.consume_backup_code', [account.user_id, hashToken(body.code.toUpperCase())]),
+        callApp<boolean>(sql, 'app.consume_backup_code', [
+          account.user_id,
+          hashToken(body.code.toUpperCase()),
+        ]),
       );
       if (consumed) {
         valid = true;
         usedBackupCode = true;
       }
     }
-    if (!valid) return fail();
+    if (!valid) {
+      await recordAttempt(body.email, ip, 'mfa_challenge', false);
+      return fail();
+    }
+    await recordAttempt(body.email, ip, 'mfa_challenge', true);
 
     const token = newSessionToken();
     const meta = await requestMeta();

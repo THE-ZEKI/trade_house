@@ -166,6 +166,7 @@ const APP_FUNCTIONS = new Set([
   'app.disable_mfa',
   'app.store_backup_codes',
   'app.consume_backup_code',
+  'app.consume_totp_step',
   // rappels (appelees par le cron)
   'app.claim_due_reminders',
   'app.prepare_reminder',

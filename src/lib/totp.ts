@@ -36,7 +36,34 @@ function codeFor(secretBase32: string, timeStep: number): string {
 
 /** Code attendu pour l'instant present. */
 export function currentCode(secret: string, at: number = Date.now()): string {
-  return codeFor(secret, Math.floor(at / 1000 / PERIOD));
+  return codeFor(secret, timeStep(at));
+}
+
+/** Numéro de pas TOTP (30 s) pour un instant donné. */
+export function timeStep(at: number = Date.now()): number {
+  return Math.floor(at / 1000 / PERIOD);
+}
+
+/**
+ * Indique quel pas TOTP correspond au code fourni.
+ *
+ * Indispensable pour interdire le rejeu : la base mémorise le dernier pas
+ * consommé, un code déjà utilisé ne peut pas servir une seconde fois.
+ */
+export function matchStep(
+  secret: string,
+  code: string,
+  at: number = Date.now(),
+  window = 1,
+): number | null {
+  const candidate = code.trim().replace(/\s+/g, '');
+  if (!/^\d{6}$/.test(candidate)) return null;
+
+  const step = timeStep(at);
+  for (let drift = -window; drift <= window; drift += 1) {
+    if (safeEqual(codeFor(secret, step + drift), candidate)) return step + drift;
+  }
+  return null;
 }
 
 /** Verifie un code en tolerant une fenetre de +/- `window` periodes. */
@@ -46,14 +73,7 @@ export function verifyCode(
   at: number = Date.now(),
   window = 1,
 ): boolean {
-  const candidate = code.trim().replace(/\s+/g, '');
-  if (!/^\d{6}$/.test(candidate)) return false;
-
-  const step = Math.floor(at / 1000 / PERIOD);
-  for (let drift = -window; drift <= window; drift += 1) {
-    if (safeEqual(codeFor(secret, step + drift), candidate)) return true;
-  }
-  return false;
+  return matchStep(secret, code, at, window) !== null;
 }
 
 /** URL otpauth:// pour le QR code (a afficher / encoder en phase 1). */

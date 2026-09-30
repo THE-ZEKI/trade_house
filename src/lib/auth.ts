@@ -19,7 +19,9 @@ import { AppError } from './errors';
  *    identifie et le RLS ne laisserait passer aucune ligne (cf. 010_auth.sql) ;
  *  - le mot de passe est verifie ici (bcrypt), jamais par la base ;
  *  - en cas d'echec, on effectue quand meme une comparaison bcrypt factice :
- *    sinon le temps de reponse revele quels emails existent (RG-01).
+ *    sinon le temps de reponse revele quels emails existent (RG-01) ;
+ *  - chaque tentative est enregistree et le blocage est applique par la base
+ *    (012_security.sql) : ni le login ni le code 2FA ne sont devinables.
  */
 
 export type SessionUser = {
@@ -36,6 +38,48 @@ export type SessionUser = {
 
 /** Hachage factice : sert a egaliser le temps de reponse (anti-enumeration). */
 const DUMMY_HASH = '$2a$06$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
+
+/**
+ * Journalise une tentative. N'echoue jamais : perdre une ligne de journal ne
+ * doit pas empecher une connexion legitime.
+ */
+export async function recordAttempt(
+  email: string,
+  ip: string | null,
+  event: string,
+  success: boolean,
+): Promise<void> {
+  try {
+    await query('select app.record_auth_attempt($1::citext, $2::inet, $3::varchar, $4::boolean)', [
+      email,
+      ip,
+      event,
+      success,
+    ]);
+  } catch (error) {
+    console.warn('[auth] journalisation indisponible', error);
+  }
+}
+
+/** Lève une erreur 429 si trop d'échecs récents (blocage temporaire). */
+export async function checkThrottle(
+  email: string,
+  ip: string | null,
+  event: string,
+): Promise<void> {
+  try {
+    await query('select app.check_auth_throttle($1::citext, $2::inet, $3::varchar)', [
+      email,
+      ip,
+      event,
+    ]);
+  } catch (error) {
+    // la base leve « Trop de tentatives… » : on la traduit en 429 explicite
+    throw new AppError('FORBIDDEN', 'Trop de tentatives, reessayez plus tard', {
+      status: 429,
+    });
+  }
+}
 
 type LoginRow = {
   id: string;
@@ -64,17 +108,25 @@ export async function authenticate(params: {
   userAgent?: string | null;
 }): Promise<LoginResult> {
   const email = params.email.trim().toLowerCase();
+  const event = 'password_login';
+
+  // Blocage temporaire : la base compte les echecs recents (par email ET par IP)
+  await checkThrottle(email, params.ip ?? null, event);
+
   const user = await queryOne<LoginRow>('select * from app.user_for_login($1::citext)', [email]);
 
   const passwordOk = await bcrypt.compare(params.password, user?.password_hash ?? DUMMY_HASH);
 
-  if (!user || !passwordOk) {
-    throw new AppError('UNAUTHENTICATED', 'Identifiants invalides', { status: 401 });
-  }
-  // RG-03 : un compte desactive ne peut plus se connecter
-  if (!user.is_active) {
+  if (!user || !passwordOk || !user.is_active) {
+    await recordAttempt(email, params.ip ?? null, event, false);
+    if (!user || !passwordOk) {
+      throw new AppError('UNAUTHENTICATED', 'Identifiants invalides', { status: 401 });
+    }
+    // RG-03 : un compte desactive ne peut plus se connecter
     throw new AppError('FORBIDDEN', 'Compte desactive', { status: 403 });
   }
+
+  await recordAttempt(email, params.ip ?? null, event, true);
 
   const publicUser: PublicUser = {
     userId: user.id,

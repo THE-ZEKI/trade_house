@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-trade_house · tools/validate_schema.py
+trade_house Â· tools/validate_schema.py
 
 Controle semantique statique, sans serveur : verifie que toute table, colonne
 et cle etrangere referencee par les migrations existe bien dans le corpus.
@@ -27,8 +27,8 @@ tables: dict[str, set[str]] = {}
 errors: list[str] = []
 warnings: list[str] = []
 
-# Contrat d'API : toute fonction listée ici doit exister dans les migrations.
-# (source de vérité : README.md, section « API metier »)
+# Contrat d'API : toute fonction listÃ©e ici doit exister dans les migrations.
+# (source de vÃ©ritÃ© : README.md, section Â« API metier Â»)
 EXPECTED_FUNCTIONS = {
     # comptes
     "create_user", "issue_invitation", "accept_invitation", "set_password",
@@ -66,6 +66,9 @@ EXPECTED_FUNCTIONS = {
     "set_mfa_enforced", "store_mfa_secret", "confirm_mfa", "mfa_secret",
     "disable_mfa", "store_backup_codes", "consume_backup_code",
     "backup_codes_remaining", "account_for_recovery",
+    # durcissement (012_security)
+    "record_auth_attempt", "check_auth_throttle", "consume_totp_step",
+    "purge_auth_attempts",
 }
 
 
@@ -92,6 +95,14 @@ def collect_tables(corpus: str) -> None:
             if c:
                 cols.add(c.group(1).lower())
         tables[name] = cols
+
+    # colonnes ajoutees ensuite par « alter table X add column Y »
+    for m in re.finditer(
+        r"alter table (?:public\.)?(\w+)\s+add column (?:if not exists )?(\w+)", corpus, re.I
+    ):
+        table, column = m.group(1).lower(), m.group(2).lower()
+        if table in tables:
+            tables[table].add(column)
 
 
 def check(label: str, table: str, column: str | None, where: str) -> None:

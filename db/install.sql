@@ -21,6 +21,7 @@
 \i migrations/009_seed.sql
 \i migrations/010_auth.sql
 \i migrations/011_mfa.sql
+\i migrations/012_security.sql
 
 \echo ''
 \echo '=== Installation terminee ==='
