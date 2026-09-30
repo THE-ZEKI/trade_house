@@ -28,3 +28,5 @@ tsconfig.tsbuildinfo
 .vscode/
 .idea/
 __pycache__/
+# Artefacts de compilation des tests
+.tmp-totp/
