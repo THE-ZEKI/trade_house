@@ -131,7 +131,10 @@ if ($Baseline) {
 }
 
 if ($Reset) {
-  Psql '-q -c "truncate app.schema_migrations"' | Out-Null
+  # sans $DbName, la commande viserait la base « postgres » et le journal
+  # resterait intact : le script conclurait alors « rien a faire ».
+  $out = Psql '-q -c "truncate app.schema_migrations"' $DbName
+  Assert-NoSqlError $out 'remise a zero du journal'
   Write-Host 'journal remis a zero (-Reset) : toutes les migrations seront rejouees'
 }
 

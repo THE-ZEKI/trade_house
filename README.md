@@ -83,9 +83,36 @@ Les routes ne font que valider l'entree et traduire la reponse.
 | Reglages | `GET/PATCH /api/settings` | RG-06 (admin seul) |
 | Cron | `POST /api/cron/send-reminders` | RG-52 |
 
-**Restant a faire** : module C (visioconference). Ce n'est pas une API mais un
-service tiers (Daily.co ou LiveKit) : C1 a C8 demandent un fournisseur heberge,
-des jetons de salle a duree de vie limitee (C4) et l'enregistrement (C7).
+**Restant a faire** : le composant de salle (module C, C1 a C8). Le back-end est
+pret et **independant du fournisseur** : voir ci-dessous.
+
+### Module C — visio, independant du fournisseur
+
+Le CDC exige deux choses qu'un lien de salon public ne sait pas faire :
+**C4** ( jeton a duree de vie courte, reserve aux invites) et **C6 / RG-25**
+( l'admin est moderateur : couper un micro, exclure, verrouiller ).
+
+La base ne signe rien : `app.room_claims` **decide** (droit d'entrer + role), et
+l'application signe les revendications avec `node:crypto` (30 min par defaut).
+Le fournisseur de visio n'en recoit qu'une projection au moment d'entrer — on
+peut donc changer de fournisseur sans toucher au metier.
+
+| Route | Effet |
+|---|---|
+| `GET /api/meetings/:id/room-token` | jeton signe + role + fournisseur (C4, C5, RG-25) |
+| `POST /api/meetings/:id/attendance` | `{event:'join'\|'leave'}` → presence mesuree par la base (C8) |
+
+```powershell
+npm run verify:room
+```
+
+La presence est mesuree **chez nous**, jamais chez le fournisseur (C8 + RG-23) :
+un segment s'ouvre a la connexion et se ferme a la deconnexion, et le job de
+cloture borne les segments orphelins (onglet ferme sans evenement).
+
+Fournisseur a choisir : `video_provider` dans les reglages vaut `external` par
+defaut (reunion B2 externe : simple lien). Passer a `daily` ou `livekit` ne
+change rien au back-end ; seule l'integration du SDK cote interface compte.
 
 ### Export PDF (D6)
 

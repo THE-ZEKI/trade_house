@@ -155,6 +155,12 @@ const APP_FUNCTIONS = new Set([
   'app.respond_correction',
   'app.arbitrate_correction',
   'app.cancel_no_trade',
+  // salle video (C4, C8)
+  'app.room_claims',
+  'app.attendance_join',
+  'app.attendance_leave',
+  'app.materialize_attendance',
+  'app.close_meeting',
   'app.start_review',
   'app.add_correction',
   'app.request_corrections',

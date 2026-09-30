@@ -34,3 +34,4 @@ __pycache__/
 .storage/
 .tmp-storage/
 .tmp-pdf/
+.tmp-room/
