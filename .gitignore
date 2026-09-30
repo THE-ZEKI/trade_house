@@ -21,7 +21,8 @@ next-env.d.ts
 
 db/*.log
 
-# Divers
+# Artefacts de build
+tsconfig.tsbuildinfo
 .DS_Store
 *.log
 .vscode/
