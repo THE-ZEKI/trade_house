@@ -50,6 +50,33 @@ export async function queryOne<T extends QueryResultRow = QueryResultRow>(
 }
 
 /**
+ * Variantes LIÉES à une transaction.
+ *
+ * Indispensable : query()/queryOne() utilisent le pool, donc une AUTRE
+ * connexion, sur laquelle app.set_user() n'a pas été posé. Le RLS filtrerait
+ * alors toutes les lignes et l'on croirait, à tort, qu'un enregistrement
+ * n'existe pas. Dans un callback asUser()/withTransaction(), utilisez
+ * systématiquement queryWith() / queryOneWith().
+ */
+export async function queryWith<T extends QueryResultRow = QueryResultRow>(
+  sql: Sql,
+  text: string,
+  params: readonly unknown[] = [],
+): Promise<T[]> {
+  const res = await sql.query<T>(text, params as unknown[]);
+  return res.rows;
+}
+
+export async function queryOneWith<T extends QueryResultRow = QueryResultRow>(
+  sql: Sql,
+  text: string,
+  params: readonly unknown[] = [],
+): Promise<T | null> {
+  const rows = await queryWith<T>(sql, text, params);
+  return rows[0] ?? null;
+}
+
+/**
  * Exécute un traitement dans une transaction.
  * En cas d'erreur : ROLLBACK, donc aucune écriture partielle.
  */
@@ -98,6 +125,7 @@ export async function asUser<T>(
  * Le nom de la fonction est validé : aucune injection possible depuis l'API.
  */
 const APP_FUNCTIONS = new Set([
+  // comptes
   'app.set_password',
   'app.update_profile',
   'app.deactivate_user',
@@ -105,12 +133,15 @@ const APP_FUNCTIONS = new Set([
   'app.create_user',
   'app.issue_invitation',
   'app.accept_invitation',
+  'app.revoke_all_sessions',
+  // reunions
   'app.create_meeting',
   'app.cancel_meeting',
   'app.reschedule_meeting',
   'app.update_meeting_link',
   'app.rsvp',
   'app.send_manual_reminder',
+  // rapports
   'app.submit_report',
   'app.resubmit_report',
   'app.declare_no_trade',
@@ -123,10 +154,22 @@ const APP_FUNCTIONS = new Set([
   'app.validate_report',
   'app.dismiss_report',
   'app.reopen_report',
+  // salle et presence
   'app.attendance_join',
   'app.attendance_leave',
   'app.close_meeting',
   'app.materialize_attendance',
+  // double authentification (A5)
+  'app.set_mfa_enforced',
+  'app.store_mfa_secret',
+  'app.confirm_mfa',
+  'app.disable_mfa',
+  'app.store_backup_codes',
+  'app.consume_backup_code',
+  // rappels (appelees par le cron)
+  'app.claim_due_reminders',
+  'app.prepare_reminder',
+  'app.complete_reminder',
 ]);
 
 export async function callApp<T = QueryResultRow>(
@@ -138,7 +181,10 @@ export async function callApp<T = QueryResultRow>(
     throw new Error(`Fonction non autorisee : ${fnName}`);
   }
   const placeholders = args.map((_, i) => `$${i + 1}`).join(', ');
-  const sqlText = `select ${fnName}(${placeholders}) as result`;
+  // to_jsonb est indispensable : sans lui, node-postgres renvoie les types
+  // composites (par exemple public.users) sous forme de texte
+  // « (uuid,email,…) » au lieu d'un objet exploitable.
+  const sqlText = `select to_jsonb(${fnName}(${placeholders})) as result`;
   const res = await sql.query(sqlText, args as unknown[]);
   const row = res.rows[0] as { result: T } | undefined;
   return row ? row.result : null;

@@ -25,6 +25,7 @@ const PUBLIC_API = [
   '/api/auth/accept-invitation',
   '/api/auth/password/forgot',
   '/api/auth/password/reset',
+  '/api/auth/mfa/challenge',
   '/api/health',
 ];
 

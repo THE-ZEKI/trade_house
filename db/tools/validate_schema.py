@@ -62,6 +62,10 @@ EXPECTED_FUNCTIONS = {
     "fn_audit_for", "user_for_login", "create_session", "session_user",
     "revoke_session", "revoke_all_sessions", "purge_expired_sessions",
     "touch_session", "recent_logins",
+    # 2FA (011_mfa)
+    "set_mfa_enforced", "store_mfa_secret", "confirm_mfa", "mfa_secret",
+    "disable_mfa", "store_backup_codes", "consume_backup_code",
+    "backup_codes_remaining", "account_for_recovery",
 }
 
 

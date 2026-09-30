@@ -14,7 +14,9 @@
     "typecheck": "tsc --noEmit",
     "db:install": "powershell -ExecutionPolicy Bypass -File db/setup.ps1 -Password $env:PGPASSWORD",
     "db:test": "powershell -ExecutionPolicy Bypass -File db/test.ps1 -Password $env:PGPASSWORD",
-    "db:validate": "python db/tools/validate_sql.py && python db/tools/validate_schema.py"
+    "db:validate": "python db/tools/validate_sql.py && python db/tools/validate_schema.py",
+    "test:phase1": "powershell -ExecutionPolicy Bypass -File scripts/test-phase1.ps1",
+    "verify:crypto": "tsc src/lib/totp.ts src/lib/crypto.ts --outDir .tmp-totp --module commonjs --target es2022 --skipLibCheck --esModuleInterop && node scripts/verify-totp.cjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
