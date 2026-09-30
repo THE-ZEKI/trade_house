@@ -1,14 +1,21 @@
 -- ============================================================================
 -- trade_house - 015_bootstrap.sql
--- Creation du PREMIER administrateur (A2 / RG-02).
+-- Creation du premier administrateur en production (A2 / RG-02).
 --
--- Le probleme : app.create_user exige un admin (RG-02), mais au demarrage
--- il n'y en a aucun. Sans cette porte de sortie, l'installation s'arrete net :
--- personne ne peut creer le premier compte.
+-- Pourquoi cette fonction existe :
+--   009_seed.sql cree un jeu d'essai avec des mots de passe CONNUS
+--   (Admin!2345, Manager!2345, Trader!2345). C'est acceptable en
+--   developpement, INTERDIT en production. Une installation de production ne
+--   joue donc pas 009_seed... et se retrouve bloquee : app.create_user exige
+--   un administrateur (RG-02) et il n'y en a aucun. C'est ce trou que cette
+--   migration bouche.
 --
--- La solution est un bootstrap a usage unique, fermee definitivement des que
--- le premier admin existe. Une fonction ouverte en permanence serait une
--- faille : celle-ci se verrouille toute seule.
+-- Usage (une seule fois, a l'installation) :
+--   select app.bootstrap_admin('toi@exemple.fr'::citext, 'Ton Nom');
+--
+-- Securite : la fonction se verrouille DEFINITIVEMENT des que le premier
+-- administrateur existe. Une porte d'entree ouverte en permanence serait une
+-- faille ; celle-ci se ferme toute seule apres un unique appel.
 -- ============================================================================
 \set ON_ERROR_STOP on
 
