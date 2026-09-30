@@ -382,7 +382,7 @@ insert into m2 (id) select id from ins;
 insert into public.meeting_participants (meeting_id, user_id)
 select (select id from m2), id from public.users where role = 'trader';
 
--- trader1 : arrive 15 min apres le debut (donc « en retard »), se deconnecte,
+-- trader1 : arrive 15 min apres le debut (donc " en retard "), se deconnecte,
 -- se reconnecte : 1380 s cumulees > 1200 s (seuil) -> present MAIS en retard.
 insert into public.meeting_attendance (meeting_id, user_id, joined_at, left_at, source)
 values ((select id from m2), (select id from public.users where email = 'trader1@trade-house.local'),

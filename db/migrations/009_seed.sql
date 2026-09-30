@@ -23,7 +23,7 @@ begin
 
   insert into public.users (email, password_hash, full_name, role, timezone, mfa_enforced)
   values ('admin@trade-house.local', crypt('Admin!2345', gen_salt('bf')),
-          'Administrateur', 'admin', 'Africa/Abidjan', true)
+          'Administrateur', 'admin', 'Africa/Abidjan', false)  -- 2FA activee a la livraison de l'ecran 2FA (A5)
   returning id into v_admin;
 
   insert into public.users (email, password_hash, full_name, role, timezone)

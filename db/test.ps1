@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
   trade_house Â· test.ps1
   Recree la base, installe les migrations et joue db/tests/smoke.sql.

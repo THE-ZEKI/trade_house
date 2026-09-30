@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
   trade_house Â· installation de la base de developpement
   Usage :

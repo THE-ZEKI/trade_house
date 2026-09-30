@@ -1,4 +1,4 @@
-﻿# Fichiers de travail
+# Fichiers de travail
 db/*.sql.out
 db/rls.sql
 node_modules/

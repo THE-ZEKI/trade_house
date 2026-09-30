@@ -58,6 +58,10 @@ EXPECTED_FUNCTIONS = {
     # comptes : garde-fous
     "fn_users_manager_guard", "fn_users_deactivate_guard",
     "fn_invitations_revoke_previous",
+    # authentification (010_auth)
+    "fn_audit_for", "user_for_login", "create_session", "session_user",
+    "revoke_session", "revoke_all_sessions", "purge_expired_sessions",
+    "touch_session", "recent_logins",
 }
 
 

@@ -1,7 +1,9 @@
-/**
- * Page d'accueil provisoire : elle affiche l'etat de la phase 1.
- * Elle sera remplacee par l'ecran de connexion en fin de phase 1.
- */
+import { redirect } from 'next/navigation';
+import { currentUser, requireUser, logout } from '@/lib/auth';
+import LogoutButton from './LogoutButton';
+
+export const dynamic = 'force-dynamic';
+
 const phases = [
   { n: 1, titre: 'Socle & authentification', etat: 'en cours' },
   { n: 2, titre: 'Reunions & rappels', etat: 'a venir' },
@@ -9,13 +11,40 @@ const phases = [
   { n: 4, titre: 'Visio, tableau de bord & production', etat: 'a venir' },
 ];
 
-export default function Home() {
+/**
+ * Accueil temporaire de la phase 1.
+ * Cette page exige une session valide en base : c'est la vraie barriere,
+ * le middleware ne fait que la commodite de navigation.
+ */
+export default async function Home() {
+  // si requireUser leve une erreur 401, on renvoie vers l'ecran de connexion
+  let user: Awaited<ReturnType<typeof currentUser>> = null;
+  try {
+    user = await requireUser();
+  } catch {
+    redirect('/login');
+  }
+  if (!user) redirect('/login');
+
   return (
     <main style={{ maxWidth: 720, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 28, marginBottom: 4 }}>Trade House</h1>
-      <p style={{ color: '#6b7280', marginTop: 0 }}>
-        Plateforme de gestion et de suivi de traders — phase 1
-      </p>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: 16,
+        }}
+      >
+        <div>
+          <h1 style={{ fontSize: 28, marginBottom: 4 }}>Trade House</h1>
+          <p style={{ color: '#6b7280', marginTop: 0 }}>
+            Connecte en tant que <strong>{user.fullName}</strong> ({user.role}) —{' '}
+            {user.email}
+          </p>
+        </div>
+        <LogoutButton />
+      </div>
 
       <section
         style={{
@@ -27,9 +56,12 @@ export default function Home() {
         }}
       >
         <h2 style={{ fontSize: 16, marginTop: 0 }}>Base de donnees</h2>
-        <p>
-          Etat : voir la route <code>GET /api/health</code> (verifie la connexion et
-          l&apos;efficacite du RLS).
+        <p style={{ margin: 0 }}>
+          Etat : <code>GET /api/health</code> — connexion et efficacite du RLS.
+        </p>
+        <p style={{ margin: '8px 0 0', color: '#6b7280', fontSize: 13 }}>
+          Les requetes de cette page passent par <code>asUser()</code> : PostgreSQL filtre les
+          lignes selon le role (RG-04, RG-06).
         </p>
       </section>
 
@@ -42,7 +74,7 @@ export default function Home() {
         }}
       >
         <h2 style={{ fontSize: 16, marginTop: 0 }}>Decoupage</h2>
-        <ul style={{ listStyle: 'none', padding: 0 }}>
+        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
           {phases.map((p) => (
             <li
               key={p.n}
@@ -66,3 +98,4 @@ export default function Home() {
     </main>
   );
 }
+
