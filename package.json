@@ -14,10 +14,12 @@
     "typecheck": "tsc --noEmit",
     "db:install": "powershell -ExecutionPolicy Bypass -File db/setup.ps1 -Password $env:PGPASSWORD",
     "db:test": "powershell -ExecutionPolicy Bypass -File db/test.ps1 -Password $env:PGPASSWORD",
+    "db:migrate": "powershell -ExecutionPolicy Bypass -File db/migrate.ps1 -Password $env:PGPASSWORD",
     "db:validate": "python db/tools/validate_sql.py && python db/tools/validate_schema.py",
     "test:phase1": "powershell -ExecutionPolicy Bypass -File scripts/test-phase1.ps1",
-    "verify:crypto": "tsc src/lib/totp.ts src/lib/crypto.ts --outDir .tmp-totp --module commonjs --target es2022 --skipLibCheck --esModuleInterop && node scripts/verify-totp.cjs",
-    "verify:email": "tsc src/lib/email.ts --outDir .tmp-email --module commonjs --target es2022 --moduleResolution node --skipLibCheck --esModuleInterop && node scripts/verify-email.mjs"
+    "verify:crypto": "tsc src/lib/totp.ts src/lib/crypto.ts --outDir .tmp-totp --module commonjs --target es2022 --skipLibCheck --esModuleInterop && node --env-file=.env.local scripts/verify-totp.cjs",
+    "verify:email": "tsc src/lib/email.ts --outDir .tmp-email --module commonjs --target es2022 --moduleResolution node --skipLibCheck --esModuleInterop && node scripts/verify-email.mjs",
+    "verify:reports": "tsc src/lib/storage.ts --outDir .tmp-storage --module commonjs --target es2022 --moduleResolution node --skipLibCheck --esModuleInterop && node --env-file=.env.local scripts/verify-reports.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
