@@ -6,6 +6,7 @@ import Shell from '@/components/Shell';
 import { Card, Empty, Badge, PageHeader } from '@/components/ui';
 import { UserCheck, UserX, ShieldCheck, ShieldOff } from 'lucide-react';
 import InviteUser from '@/components/InviteUser';
+import UserSearch from '@/components/UserSearch';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,9 +18,13 @@ export const metadata = { title: 'Comptes — Trade House' };
  * `pageUserAs(['admin'])` renvoie un manager vers l'accueil. Ce n'est qu'un
  * confort : meme en forçant l'URL, le RLS ne renverrait aucune ligne.
  */
-export default async function UsersPage() {
+export default async function UsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; role?: string }>;
+}) {
   const user = await pageUserAs(['admin']);
-
+  const { q, role } = await searchParams;
   const users = await asUser(user.userId, (sql) =>
     queryWith(
       sql,
@@ -31,7 +36,13 @@ export default async function UsersPage() {
               m.full_name as manager_name
          from public.users u
          left join public.users m on m.id = u.manager_id
-        order by u.role, u.full_name`,
+        where ($1::text is null
+               or u.full_name ilike '%' || $1 || '%'
+               or u.email::text ilike '%' || $1 || '%')
+          and ($2::user_role is null or u.role = $2::user_role)
+        order by u.role, u.full_name
+        limit 500`,
+      [q?.trim() || null, role || null],
     ),
   );
 
@@ -52,6 +63,8 @@ export default async function UsersPage() {
           title={t(user.locale, 'nav.users')}
           subtitle={`${users.length} comptes · ${active} actifs`}
         />
+
+        <UserSearch q={q ?? ''} role={role ?? ''} />
 
         <Card>
           {users.length === 0 ? (

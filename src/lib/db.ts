@@ -136,6 +136,7 @@ const APP_FUNCTIONS = new Set([
   'app.revoke_all_sessions',
   // 018 : administration des comptes. La fonction elle-meme exige un
   // administrateur ; cette liste n'autorise que l'appel.
+  'app.update_settings',
   'app.update_user_account',
   'app.anonymize_user',
   // reunions

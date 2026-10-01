@@ -31,87 +31,56 @@ export async function GET() {
   }
 }
 
-/** Champs modifiables, avec leur type et leurs bornes. */
-const NUMERIC: Record<string, [number, number]> = {
-  late_submission_days: [0, 30],
-  correction_critical_days: [0, 30],
-  stale_submission_hours: [1, 720],
-  max_files_per_report: [1, 50],
-  max_screenshot_mb: [1, 50],
-  max_pdf_mb: [1, 100],
-  default_duration_min: [5, 480],
-  attendance_present_ratio: [0, 1],
-  late_arrival_minutes: [0, 120],
-  room_open_before_minutes: [0, 120],
-  room_close_after_minutes: [0, 240],
-  invitation_ttl_days: [1, 30],
-  reminder_retry_count: [0, 10],
-  reminder_retry_minutes: [1, 1440],
-  max_login_attempts: [3, 20],
-  login_lockout_minutes: [1, 1440],
-  max_mfa_attempts: [3, 20],
-  mfa_lockout_minutes: [1, 1440],
-  retention_recording_months: [1, 120],
-  retention_report_months: [1, 120],
-};
-
 /**
  * PATCH /api/settings — modification des seuils (RG-06, admin uniquement)
  *
- * Les valeurs sont ecrites avec un UPDATE explicite sur chaque colonne : le
- * nom du champ ne peut pas etre injecte dans la requete, seule la valeur
- * l'est, et toujours comme parametre.
+ * L'ecran etait en lecture seule : la validation etait ici, cote API, et
+ * jamais appellee. Ce qui est pire, un UPDATE direct ecrivait dans app_settings
+ * sans journal ni `updated_by` : un changement de regle de securite n etait
+ * donc pas tracable (RG-63).
+ *
+ * Tout passe maintenant par app.update_settings(), qui :
+ *   - refuse une cle absente du catalogue ;
+ *   - verifie le type et les bornes ;
+ *   - journalise l avant et l apres.
+ *
+ * Les bornes ne sont donc PAS redefinies ici : elles vivent en base. Les
+ * dupliquer dans l API les ferait diverger, et c est precisement le piege que
+ * la regle « les regles vivent en base » cherche a eviter.
  */
 export async function PATCH(request: Request) {
   const raw = await request.json().catch(() => null);
   if (typeof raw !== 'object' || raw === null) {
     return jsonOk({ error: { code: 'VALIDATION', message: 'Corps invalide', rule: null } }, 422);
   }
-  const b = raw as Record<string, unknown>;
+  const patch = raw as Record<string, unknown>;
 
   try {
     const user = await requireUser();
     if (user.role !== 'admin') return requireAdmin(user.role);
 
-    const sets: string[] = [];
-    const values: unknown[] = [];
-
-    const add = (column: string, value: unknown, cast = 'numeric') => {
-      values.push(value);
-      sets.push(`${column} = $${values.length}::${cast}`);
-    };
-
-    for (const [key, [min, max]] of Object.entries(NUMERIC)) {
-      if (!(key in b)) continue;
-      const n = Number(b[key]);
-      if (!Number.isFinite(n) || n < min || n > max) {
-        return jsonOk(
-          { error: { code: 'VALIDATION', message: `${key} hors bornes (${min}..${max})`, rule: null } },
-          422,
-        );
-      }
-      add(key, n);
-    }
-
-    if ('default_locale' in b) {
-      add('default_locale', b.default_locale === 'en' ? 'en' : 'fr', 'varchar');
-    }
-    if (typeof b.storage_provider === 'string' && ['local', 's3', 'supabase'].includes(b.storage_provider)) {
-      add('storage_provider', b.storage_provider, 'varchar');
-    }
-    if (typeof b.available_locales === 'string' && /^(fr|en)(,(fr|en))*$/.test(b.available_locales)) {
-      add('available_locales', b.available_locales, 'varchar');
-    }
-
-    if (sets.length === 0) {
+    const keys = Object.keys(patch);
+    if (keys.length === 0) {
       return jsonOk({ error: { code: 'VALIDATION', message: 'Aucun reglage modifiable', rule: null } }, 422);
     }
 
-    const rows = await asUser(user.userId, (sql) =>
-      queryWith(sql, `update public.app_settings set ${sets.join(', ')}, updated_at = now() returning *`),
+    // Le refus vient de la base : le message est celui de app.update_settings,
+    // pas un texte concurrent ecrit ici.
+    await asUser(user.userId, (sql) =>
+      callApp(sql, 'app.update_settings', [JSON.stringify(patch)]),
     );
-    return jsonOk({ settings: rows[0] ?? null, updated: sets.length });
+
+    const rows = await asUser(user.userId, (sql) =>
+      queryWith(sql, 'select * from app.settings()'),
+    );
+    return jsonOk({ settings: rows[0] ?? null, updated: keys.length });
   } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    // Les bornes sont refusees par la base : on renvoie 422 avec son message,
+    // et non une erreur generique que l administrateur ne peut pas comprendre.
+    if (/hors bornes|inconnu|non modifiable|langue invalide/i.test(message)) {
+      return jsonOk({ error: { code: 'VALIDATION', message, rule: null } }, 422);
+    }
     return jsonError(error);
   }
 }

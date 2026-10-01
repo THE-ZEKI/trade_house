@@ -2,104 +2,51 @@ import { asUser, queryWith } from '@/lib/db';
 import { pageUserAs } from '@/lib/page';
 import { t } from '@/lib/i18n';
 import Shell from '@/components/Shell';
-import { Card, Empty, PageHeader } from '@/components/ui';
+import { PageHeader } from '@/components/ui';
+import SettingsEditor from '@/components/SettingsEditor';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata = { title: 'Reglages — Trade House' };
 
-type Row = { key: string; value: string };
-
-/** Rang des groupes : un reglage inconnu atterrit dans « Autres ». */
-const GROUPS: { title: string; match: RegExp }[] = [
-  { title: 'Rapports et fichiers', match: /report|submission|files|screenshot|pdf|stale|late/i },
-  { title: 'Reunions et salle', match: /meeting|duration|attendance|room|video|token/i },
-  { title: 'Rappels et invitations', match: /reminder|invitation|retry/i },
-  { title: 'Securite', match: /login|mfa|lockout|locale|secret|storage|bucket/i },
-];
-
-/** Regles internes : jamais presentees comme reglages, ce ne sont pas des choix. */
-const TECHNICAL = new Set(['id', 'updated_at']);
-
 /**
- * Reglages — administrateur, lecture seule pour l'instant.
+ * Reglages (DESIGN_SYSTEM §6.10) — modifiables.
  *
- * Un ecran sans bouton « Enregistrer » est assume : les seuils et les delais
- * sont des regles metier (RG-37, RG-38). Ils doivent changer par
- * `app.update_settings`, avec controle du role et trace dans le journal — pas
- * par un formulaire libre. Un superviseur doit en revanche pouvoir verifier
- * d'ou viennent les rappels sans ouvrir la base.
+ * L'ecran affichait les valeurs sans permettre de les changer, parce qu'aucune
+ * fonction ne les ecrivait. C'est corrige : tout passe par
+ * app.update_settings(), qui valide le type et les bornes puis journalise.
  *
- * Les cles sont lues depuis la base (`jsonb_each_text`) et non ecrites en dur :
- * une liste codee en dur deriverait silencieusement a l'ajout d'un reglage.
+ * Le catalogue des bornes est lu en base et transmis a l'interface. Les regles
+ * ne sont donc pas dupliquees dans le TypeScript — une seule definition, la
+ * seule qui fait autorite.
  */
 export default async function SettingsPage() {
   const user = await pageUserAs(['admin']);
 
-  const rows = await asUser(user.userId, (sql) =>
-    queryWith<Row>(
+  const { settings, bounds } = await asUser(user.userId, async (sql) => ({
+    settings: (await queryWith(sql, 'select * from app.settings()'))[0] ?? {},
+    bounds: await queryWith<{ key: string; kind: string; lo: number; hi: number }>(
       sql,
-      `select e.key, e.value
-         from app.settings() s, lateral jsonb_each_text(to_jsonb(s)) e
-        order by e.key`,
+      'select key, kind, lo, hi from app.settings_catalog() order by key',
     ),
-  );
-
-  const settings = rows.filter((r) => !TECHNICAL.has(r.key));
-  const used = new Set<string>();
-  const buckets = GROUPS.map((g) => {
-    const items = settings.filter((r) => g.match.test(r.key) && !used.has(r.key));
-    items.forEach((r) => used.add(r.key));
-    return { title: g.title, items };
-  }).filter((b) => b.items.length > 0);
-
-  const rest = settings.filter((r) => !used.has(r.key));
+  }));
 
   return (
     <Shell user={user}>
-      <div className="space-y-6">
+      <div className="mx-auto max-w-4xl space-y-5">
         <PageHeader
           title={t(user.locale, 'nav.settings')}
-          subtitle="Seuils et delais · modifies en base, jamais depuis un formulaire"
+          subtitle="Seuils, quotas et delais — modifies en base, jamais dans le code"
         />
-
-        {settings.length === 0 ? (
-          <Card>
-            <Empty>Aucun reglage expose.</Empty>
-          </Card>
-        ) : (
-          <>
-            {buckets.map((b) => (
-              <Card key={b.title} title={b.title}>
-                <dl className="divide-y divide-border">
-                  {b.items.map((r) => (
-                    <div key={r.key} className="flex items-center justify-between gap-4 px-4 py-2.5">
-                      <dt className="font-mono text-xs text-text-muted">{r.key}</dt>
-                      <dd className="tnum max-w-[50%] truncate text-sm" title={r.value}>
-                        {r.value || '-'}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              </Card>
-            ))}
-
-            {rest.length > 0 && (
-              <Card title="Autres reglages">
-                <dl className="divide-y divide-border">
-                  {rest.map((r) => (
-                    <div key={r.key} className="flex items-center justify-between gap-4 px-4 py-2.5">
-                      <dt className="font-mono text-xs text-text-muted">{r.key}</dt>
-                      <dd className="tnum max-w-[50%] truncate text-sm" title={r.value}>
-                        {r.value || '-'}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              </Card>
-            )}
-          </>
-        )}
+        <SettingsEditor
+          settings={settings as Record<string, string | number | null>}
+          bounds={bounds.map((b) => ({
+            key: String(b.key),
+            kind: String(b.kind),
+            lo: Number(b.lo),
+            hi: Number(b.hi),
+          }))}
+        />
       </div>
     </Shell>
   );
