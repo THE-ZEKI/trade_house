@@ -102,6 +102,22 @@ $meetings = @(Get-Json $sAdmin '/api/meetings' | ForEach-Object { $_.meetings })
 $traderId = if ($traders.Count)  { [string]$traders[0].id }  else { $null }
 $reportId = if ($reports.Count)  { [string]$reports[0].id }  else { $null }
 
+# Les actions de revue dependent du STATUT du rapport : « demander des
+# correctifs » n est propose qu a partir de in_review. Tester cette action
+# sur un rapport en brouillon testerait autre chose que la permission.
+# On cherche donc un rapport dans le bon etat, et on le signale si
+# le jeu de donnees n en contient aucun.
+$reviewId = ($reports | Where-Object { $_.status -eq 'in_review' } | Select-Object -First 1)
+if (-not $reviewId) {
+  $submitted = $reports | Where-Object { $_.status -eq 'submitted' } | Select-Object -First 1
+  $reviewId = if ($submitted) { [string]$submitted.id } else { $null }
+}
+if ($reviewId) { $reviewId = [string]$reviewId }
+
+if (-not $reviewId) {
+  Write-Host 'Aucun rapport en revue : les actions de revue ne seront pas verifiees.' -ForegroundColor Yellow
+}
+
 if (-not $traderId -or -not $reportId) {
   Write-Host 'Donnees manquantes : aucun trader ou rapport visible par l admin.' -ForegroundColor Yellow
   exit 2
@@ -123,8 +139,8 @@ $MATRICE = @(
 
   @{ path = '/reports'; marker = 'Nouveau rapport'; in = @('trader');           label = 'creer un rapport (trader)' }
   @{ path = '/reports'; marker = 'Nouveau rapport'; in = @('admin','manager');  label = 'creer un rapport (manager/admin : interdit)' }
-  @{ path = "/reports/$reportId"; marker = 'Demander des correctifs'; in = @('admin','manager'); label = 'demander des correctifs' }
-  @{ path = "/reports/$reportId"; marker = 'Demander des correctifs'; in = @('trader');           label = 'demander des correctifs (trader : interdit)' }
+  @{ path = "/reports/$reviewId"; marker = 'Demander des correctifs'; in = @('admin','manager'); label = 'demander des correctifs' }
+  @{ path = "/reports/$reviewId"; marker = 'Demander des correctifs'; in = @('trader');           label = 'demander des correctifs (trader : interdit)' }
   @{ path = "/reports/$reportId"; marker = 'Valider';               in = @('trader');           label = 'valider (trader : interdit)' }
 
   @{ path = '/meetings'; marker = 'Planifier une reunion'; in = @('admin','manager'); label = 'planifier une reunion' }

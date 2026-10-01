@@ -79,6 +79,7 @@ const ADMIN: Action[] = [
   ...MANAGER,
   'user.invite', 'user.deactivate', 'user.reactivate', 'user.enforce_mfa',
   'user.reset_password', 'user.revoke_sessions',
+  'user.update', 'user.anonymize',
   'audit.read', 'settings.read',
 ];
 
