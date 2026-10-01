@@ -71,6 +71,37 @@ $ACCOUNTS = @(
   @{ role = 'trader';  email = 'trader1@trade-house.local';  mdp = 'Trader!2345' }
 )
 
+# Un identifiant de rapport ou de reunion est DECOUVERT, jamais fourni.
+#
+# Raison : ils venaient de variables d'environnement. Sans elles, le script
+# produisait « /traders/ » et un 308 — une faute de configuration presentee
+# comme une panne de l'application. Un test capable d'echouer pour une cause
+# qui n'est pas l'application n'est pas fiable : il doit trouver ses donnees.
+$sAdmin = Login $ACCOUNTS[0].email $ACCOUNTS[0].mdp
+
+function Get-Json($s, [string]$path) {
+  try {
+    return (Invoke-WebRequest -Uri "$Base$path" -WebSession $s -UseBasicParsing -TimeoutSec 20).Content |
+      ConvertFrom-Json
+  } catch {
+    return $null
+  }
+}
+
+# On passe par l'API et non par la base : le test verifie ce que voit
+# reellement un utilisateur authentifie, RLS compris.
+$traders  = @(Get-Json $sAdmin '/api/users'   | ForEach-Object { $_.users }   | Where-Object { $_.role -eq 'trader' })
+$reports  = @(Get-Json $sAdmin '/api/reports' | ForEach-Object { $_.reports })
+$meetings = @(Get-Json $sAdmin '/api/meetings'| ForEach-Object { $_.meetings })
+
+if ($traders.Count  -eq 0) { Write-Host '  ATTENTION : aucun trader trouve'   -ForegroundColor Yellow }
+if ($reports.Count  -eq 0) { Write-Host '  ATTENTION : aucun rapport trouve'   -ForegroundColor Yellow }
+if ($meetings.Count -eq 0) { Write-Host '  ATTENTION : aucune reunion trouvee' -ForegroundColor Yellow }
+
+$traderId  = if ($traders.Count)  { [string]$traders[0].id }  else { $null }
+$reportId  = if ($reports.Count)  { [string]$reports[0].id }  else { $null }
+$meetingId = if ($meetings.Count) { [string]$meetings[0].id } else { $null }
+
 foreach ($a in $ACCOUNTS) {
   Write-Host ''
   Write-Host "=== $($a.role) : $($a.email) ==="
@@ -83,7 +114,7 @@ foreach ($a in $ACCOUNTS) {
 
   $paths = @('/', '/reports', '/meetings', '/profile', '/notifications')
   if ($a.role -eq 'admin') { $paths += @('/users', '/audit', '/settings') }
-  if ($a.role -in @('admin', 'manager')) { $paths += @("/traders/$traderId") }
+  if ($a.role -in @('admin', 'manager') -and $traderId)  { $paths += "/traders/$traderId" }
   if ($reportId)  { $paths += "/reports/$reportId" }
   if ($a.role -eq 'trader') { $paths += '/reports/new' }
   if ($meetingId) { $paths += "/meetings/$meetingId" }
