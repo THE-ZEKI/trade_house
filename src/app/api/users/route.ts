@@ -40,8 +40,14 @@ export async function GET(request: Request) {
                   where s.user_id = u.id and s.revoked_at is null
                     and s.expires_at > now()) as active_sessions,
                 r.last_report_date,
-                (r.last_report_date is not null
-                   and current_date - r.last_report_date) as days_since_report
+                -- Parentheses indispensables : date moins date rend un entier,
+                -- et "a and entier" fait echouer PostgreSQL (« l'argument de
+                -- AND doit etre de type boolean »). Sans elles, cette route
+                -- renvoyait 500 — la page /users, qui interroge la base
+                -- directement, fonctionnait et masquait donc le defaut.
+                case when r.last_report_date is not null
+                     then (current_date - r.last_report_date)
+                end as days_since_report
            from public.users u
            left join public.users m on m.id = u.manager_id
            left join lateral (
