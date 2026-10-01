@@ -1,11 +1,27 @@
 # Verification des ecrans : chaque page, chaque role.
 # Objectif : attraper les 404 et les 500 avant que l'utilisateur ne les voie.
+#
+# PREREQUIS : le serveur doit tourner. Dans un autre terminal :
+#     npm run dev
+# Ce script ne demarre rien lui-meme — deux serveurs simultanes sur le meme
+# port echoueraient silencieusement, et le diagnostic serait trompeur.
 
 param(
   [string]$Base = 'http://127.0.0.1:3000'
 )
 
 $ErrorActionPreference = 'Stop'
+
+# Test de joignabilite en tete : trois « echec de connexion » d'affilee ne
+# disent rien d'utile sur les ecrans, seulement que le serveur manque.
+try {
+  Invoke-WebRequest "$Base/login" -TimeoutSec 10 -UseBasicParsing | Out-Null
+} catch {
+  Write-Host "SERVEUR INJOIGNABLE sur $Base" -ForegroundColor Red
+  Write-Host "  Lancez d'abord :  npm run dev" -ForegroundColor Yellow
+  Write-Host "  Puis rejouez    :  npm run check:pages"
+  exit 2
+}
 
 # Une page qui repond 200 mais affiche une erreur Next ne doit pas passer.
 # Attention : Next embarque la page 404 dans le bundle de CHAQUE route (le
