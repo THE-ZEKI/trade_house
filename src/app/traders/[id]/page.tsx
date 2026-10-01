@@ -4,6 +4,7 @@ import { pageUserAs } from '@/lib/page';
 import { t } from '@/lib/i18n';
 import Shell from '@/components/Shell';
 import UserActions from '@/components/UserActions';
+import EditUser from '@/components/EditUser';
 import { ShieldCheck, ShieldOff } from 'lucide-react';
 import { Card, Empty, PageHeader, Stat, PlanBadge } from '@/components/ui';
 
@@ -30,6 +31,7 @@ export default async function TraderPage({ params }: Params) {
       sql,
       `select u.id, u.email, u.full_name, u.role, u.is_active, u.phone,
               u.timezone, u.mfa_enrolled, u.last_login_at, u.created_at,
+              u.manager_id, u.phone, u.preferred_locale, u.mfa_enforced, u.anonymized_at,
               m.full_name as manager_name
          from public.users u
          left join public.users m on m.id = u.manager_id
@@ -60,6 +62,11 @@ export default async function TraderPage({ params }: Params) {
   }));
 
   if (!trader) notFound();
+
+  // Liste des managers, pour le selecteur de rattachement d'un trader.
+  const managers = await asUser(user.userId, (sql) =>
+    queryWith<{ id: string; full_name: string }>(sql, "select id, full_name from public.users where role in ('manager','admin') and is_active order by full_name")
+  );
 
   const total = Number(stats?.total ?? 0);
   const planOk = Number(stats?.plan_ok ?? 0);
@@ -134,12 +141,28 @@ export default async function TraderPage({ params }: Params) {
           </div>
           <div className="lg:sticky lg:top-20 lg:self-start">
             <Card title="Actions">
-              <div className="p-4">
+              <div className="grid gap-2 p-4">
+                <EditUser
+                  user={user}
+                  targetId={String(trader.id)}
+                  current={{
+                    fullName: String(trader.full_name ?? ''),
+                    role: String(trader.role ?? 'trader'),
+                    managerId: trader.manager_id ? String(trader.manager_id) : null,
+                    phone: trader.phone ? String(trader.phone) : null,
+                    timezone: trader.timezone ? String(trader.timezone) : null,
+                    locale: trader.preferred_locale ? String(trader.preferred_locale) : 'fr',
+                  }}
+                  managers={managers}
+                />
                 <UserActions
                   user={user}
                   targetId={String(trader.id)}
                   isActive={trader.is_active === true}
                   mfaEnforced={trader.mfa_enforced === true}
+                  anonymized={
+                    trader.anonymized_at !== null && trader.anonymized_at !== undefined
+                  }
                 />
               </div>
             </Card>

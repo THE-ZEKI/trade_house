@@ -3,11 +3,13 @@ import { jsonError, jsonOk } from '@/lib/http';
 import { requireUser } from '@/lib/auth';
 import { sendEmail, appUrl } from '@/lib/email';
 import { invitationEmail } from '@/lib/email-templates';
+import { AppError } from '@/lib/errors';
 
 export const dynamic = 'force-dynamic';
 
 type Params = { params: Promise<{ id: string }> };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const ROLES = ['admin', 'manager', 'trader'];
 
 /**
  * GET /api/users/:id — fiche compte (A2, A3, F2)
@@ -121,6 +123,38 @@ export async function PATCH(request: Request, { params }: Params) {
           }
           const show = (process.env.EMAIL_PROVIDER ?? 'log') === 'log' ? { previewLink: link } : {};
           return { invited: true, ...show };
+        }
+
+        case 'update': {
+          // 018 : modification d'un compte. Les regles (role, manager, retrait
+          // du dernier administrateur) sont verifiees par app.update_user_account.
+          const role = typeof body.role === 'string' ? body.role : null;
+          if (role && !ROLES.includes(role)) {
+            throw new AppError('VALIDATION', 'Role invalide', { status: 422 });
+          }
+          const managerId =
+            typeof body.managerId === 'string' && body.managerId ? body.managerId : null;
+          return {
+            user: await callApp<{ id: string }>(sql, 'update_user_account', [
+              id,
+              role,
+              managerId,
+              typeof body.phone === 'string' ? body.phone : null,
+              typeof body.timezone === 'string' ? body.timezone : null,
+              typeof body.locale === 'string' ? body.locale : null,
+              typeof body.fullName === 'string' ? body.fullName : null,
+            ]),
+          };
+        }
+
+        case 'anonymize': {
+          // 018 : droit a l'oubli. On n'efface pas la ligne, seulement
+          // l'identite — l'historique des rapports reste rattache.
+          // Confirmation explicite exigee : action irreversible.
+          if (body.confirm !== true) {
+            throw new AppError('VALIDATION', 'Confirmation requise', { status: 422 });
+          }
+          return { anonymized: await callApp<string>(sql, 'anonymize_user', [id]) };
         }
 
         default:

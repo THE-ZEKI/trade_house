@@ -47,6 +47,8 @@ export type Action =
   | 'user.enforce_mfa'
   | 'user.reset_password'
   | 'user.revoke_sessions'
+  | 'user.update'
+  | 'user.anonymize'
   // Administration
   | 'audit.read'
   | 'settings.read';

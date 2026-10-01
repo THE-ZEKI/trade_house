@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Loader2, AlertCircle, UserX, UserCheck, ShieldCheck, ShieldOff, LogOut, Mail,
+  Eraser,
 } from 'lucide-react';
 import type { SessionUser } from '@/lib/auth';
 import { can, type Action } from '@/lib/permissions';
@@ -34,11 +35,14 @@ export default function UserActions({
   targetId,
   isActive,
   mfaEnforced,
+  anonymized,
 }: {
   user: SessionUser;
   targetId: string;
   isActive: boolean;
   mfaEnforced: boolean;
+  /** Un compte deja anonymise n'offre plus rien a effacer. */
+  anonymized: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -75,6 +79,20 @@ export default function UserActions({
     },
   ];
 
+  // L'anonymisation n'est proposee que sur un compte actif et non deja
+  // anonymise : sur un compte deja inactif, une desactivation suffit.
+  if (!anonymized && isActive) {
+    specs.push({
+      action: 'user.anonymize',
+      apiAction: 'anonymize',
+      label: 'Effacer les donnees personnelles',
+      Icon: Eraser,
+      danger: true,
+      confirmText:
+        'Action irreversible : email, nom et telephone sont detruits et le compte est ferme. Les rapports et correctifs sont conserves.',
+    });
+  }
+
   const allowed = specs.filter(
     (s) => can(user, s.action) && !(isSelf && s.action === 'user.deactivate'),
   );
@@ -90,7 +108,10 @@ export default function UserActions({
         body: JSON.stringify(
           spec.apiAction === 'mfa-required'
             ? { action: spec.apiAction, enabled: !mfaEnforced }
-            : { action: spec.apiAction },
+            : spec.apiAction === 'anonymize'
+              // Confirmation explicite dans le corps : l'API refuse sans elle.
+              ? { action: spec.apiAction, confirm: true }
+              : { action: spec.apiAction },
         ),
       });
       const data = await res.json();
