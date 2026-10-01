@@ -1,9 +1,9 @@
-# Verification des ecrans : chaque page, chaque role.
+﻿# Verification des ecrans : chaque page, chaque role.
 # Objectif : attraper les 404 et les 500 avant que l'utilisateur ne les voie.
 #
 # PREREQUIS : le serveur doit tourner. Dans un autre terminal :
 #     npm run dev
-# Ce script ne demarre rien lui-meme — deux serveurs simultanes sur le meme
+# Ce script ne demarre rien lui-meme - deux serveurs simultanes sur le meme
 # port echoueraient silencieusement, et le diagnostic serait trompeur.
 
 param(
@@ -12,7 +12,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# Test de joignabilite en tete : trois « echec de connexion » d'affilee ne
+# Test de joignabilite en tete : trois " echec de connexion " d'affilee ne
 # disent rien d'utile sur les ecrans, seulement que le serveur manque.
 try {
   Invoke-WebRequest "$Base/login" -TimeoutSec 10 -UseBasicParsing | Out-Null
@@ -74,7 +74,7 @@ $ACCOUNTS = @(
 # Un identifiant de rapport ou de reunion est DECOUVERT, jamais fourni.
 #
 # Raison : ils venaient de variables d'environnement. Sans elles, le script
-# produisait « /traders/ » et un 308 — une faute de configuration presentee
+# produisait " /traders/ " et un 308 - une faute de configuration presentee
 # comme une panne de l'application. Un test capable d'echouer pour une cause
 # qui n'est pas l'application n'est pas fiable : il doit trouver ses donnees.
 $sAdmin = Login $ACCOUNTS[0].email $ACCOUNTS[0].mdp

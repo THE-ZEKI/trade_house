@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
   trade_house - scripts/test-phase1.ps1
   Test de bout en bout de la phase 1 (authentification + durcissement).
