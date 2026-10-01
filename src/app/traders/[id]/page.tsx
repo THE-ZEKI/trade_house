@@ -3,7 +3,7 @@ import { asUser, queryOneWith, queryWith } from '@/lib/db';
 import { pageUserAs } from '@/lib/page';
 import { t } from '@/lib/i18n';
 import Shell from '@/components/Shell';
-import { Card, Empty, Badge, PageHeader, Stat } from '@/components/ui';
+import { Card, Empty, PageHeader, Stat, PlanBadge } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -120,9 +120,7 @@ export default async function TraderPage({ params }: Params) {
                 <li key={String(r.id)} className="flex items-center justify-between gap-3 px-4 py-3">
                   <span className="tnum text-sm">{fmtDate(r.session_date)}</span>
                   <div className="flex items-center gap-1.5">
-                    <Badge tone={r.plan_respected ? 'success' : 'warn'}>
-                      {r.plan_respected ? 'plan respecte' : 'plan non respecte'}
-                    </Badge>
+                    <PlanBadge respected={r.plan_respected === true} locale={user.locale} />
                   </div>
                 </li>
               ))}

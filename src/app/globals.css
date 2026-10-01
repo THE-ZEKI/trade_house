@@ -182,6 +182,8 @@ body {
   --s-7: 48px;
 
   /* Typo */
-  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  /* Inter est injectee par next/font dans --font-inter ; le repli systeme
+     reste donc disponible si le chargement echoue. */
+  --font-sans: var(--font-inter, 'Inter'), 'Segoe UI', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }

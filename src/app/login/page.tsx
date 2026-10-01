@@ -1,5 +1,8 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { TrendingUp } from 'lucide-react';
 import { currentUser } from '@/lib/auth';
+import { t } from '@/lib/i18n';
 import LoginForm from './LoginForm';
 
 export const dynamic = 'force-dynamic';
@@ -7,9 +10,11 @@ export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Connexion — Trade House' };
 
 /**
- * Ecran de connexion.
- * Si une session valide existe deja, le middleware renvoie vers l'accueil ;
- * cette verification en base sert de filet de securite.
+ * Ecran de connexion (DESIGN_SYSTEM §6.1).
+ *
+ * Fond degrade ciel, carte blanche centree. C'est la toute premiere impression
+ * de l'application : elle doit etre calme, et ne rien reveler de l'etat du
+ * compte avant d'avoir demande le mot de passe.
  */
 export default async function LoginPage({
   searchParams,
@@ -20,29 +25,37 @@ export default async function LoginPage({
   if (user) redirect('/');
 
   const { next } = await searchParams;
-  const target = next && next.startsWith('/') ? next : '/';
+  // On n'accepte qu'un chemin interne : une URL complete permettrait une
+  // redirection ouverte vers un site tiers apres connexion.
+  const target = next && next.startsWith('/') && !next.startsWith('//') ? next : '/';
 
   return (
-    <main style={{ maxWidth: 380, margin: '48px auto' }}>
-      <div
-        style={{
-          background: '#fff',
-          border: '1px solid #e5e7eb',
-          borderRadius: 14,
-          padding: 28,
-        }}
-      >
-        <h1 style={{ fontSize: 20, margin: '0 0 4px' }}>Trade House</h1>
-        <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 22px' }}>
-          Gestion et suivi de traders
-        </p>
+    <main className="flex min-h-screen items-center justify-center px-4 py-10">
+      <div className="w-full max-w-[420px]">
+        <div className="mb-6 flex flex-col items-center gap-3 text-center">
+          <span className="inline-flex h-14 w-14 items-center justify-center rounded-lg bg-sky-500 shadow-[var(--shadow-md)]">
+            <TrendingUp className="h-7 w-7 text-white" strokeWidth={2.5} />
+          </span>
+          <div>
+            <h1 className="text-[26px] font-bold leading-tight tracking-tight">
+              {t('fr', 'app.name')}
+            </h1>
+            <p className="mt-0.5 text-sm text-text-muted">{t('fr', 'app.tagline')}</p>
+          </div>
+        </div>
 
-        <LoginForm next={target} />
+        <div className="rounded-lg border border-border bg-surface px-6 py-6 shadow-[var(--shadow-md)]">
+          <LoginForm next={target} />
 
-        <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 18, marginBottom: 0 }}>
-          Acces reserve aux comptes autorises. En cas d&apos;oubli de mot de passe,
-          utilisez la demande de reinitialisation.
-        </p>
+          <p className="mt-6 border-t border-border pt-4 text-center text-xs leading-relaxed text-text-faint">
+            Acces reserve aux comptes autorises.
+            <br />
+            Mot de passe oublie ?{' '}
+            <Link href="/mot-de-passe-oublie" className="font-semibold text-sky-700 hover:underline">
+              Reinitialiser
+            </Link>
+          </p>
+        </div>
       </div>
     </main>
   );
