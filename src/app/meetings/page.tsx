@@ -7,6 +7,7 @@ import { Card, Empty, RsvpBadge, CodeBadge, PageHeader } from '@/components/ui';
 import { MEETING_STATUS, LINK_PROVIDER } from '@/lib/status';
 import RsvpButtons from '@/components/RsvpButtons';
 import { can } from '@/lib/permissions';
+import CreateMeeting from '@/components/CreateMeeting';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,12 @@ export default async function MeetingsPage() {
   const user = await pageUser();
   const isTrader = user.role === 'trader';
 
-  const { upcoming, past } = await asUser(user.userId, async (sql) => ({
+  // La liste des traders invites sert au selecteur de la creation de reunion.
+  // Reservee a la supervision : un trader n invite personne.
+  const { upcoming, past, traders } = await asUser(user.userId, async (sql) => ({
+    traders: can(user, 'meeting.create')
+      ? await queryWith(sql, "select id, full_name from public.users where role = 'trader' and is_active order by full_name")
+      : [],
     upcoming: await queryWith(
       sql,
       `select m.id, m.title, m.starts_at, m.duration_min, m.type, m.status,

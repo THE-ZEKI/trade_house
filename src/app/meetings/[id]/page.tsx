@@ -8,6 +8,7 @@ import { MEETING_STATUS, MEETING_TYPE, ATTENDANCE } from '@/lib/status';
 import { UserCheck, Repeat, Video } from 'lucide-react';
 import RsvpButtons from '@/components/RsvpButtons';
 import { can } from '@/lib/permissions';
+import SendReminder from '@/components/SendReminder';
 import { t } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
@@ -152,6 +153,12 @@ export default async function MeetingDetail({ params }: Params) {
             </ul>
           )}
         </Card>
+
+        {can(user, 'meeting.send_reminder') && (
+          <div className="mx-auto max-w-md">
+            <SendReminder meetingId={String(meeting.id)} />
+          </div>
+        )}
       </div>
     </Shell>
   );
