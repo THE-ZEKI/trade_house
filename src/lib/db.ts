@@ -199,11 +199,29 @@ const APP_FUNCTIONS = new Set([
   'app.mark_notification_failed',
 ]);
 
+/**
+ * Normalise un nom de fonction metier.
+ *
+ * Le nom peut etre ecrit 'validate_report' ou 'app.validate_report'. Les deux
+ * formes coexistaient dans les routes : vingt-quatre appels ecrivaient sans le
+ * prefixe, alors que la liste blanche ne contient que la forme complete.
+ * Resultat : « Fonction non autorisee » sur toute la revue et toute
+ * l'administration des comptes — avec une fonction qui existe en base et un
+ * TypeScript parfaitement vert.
+ *
+ * Normaliser ici supprime la classe de bug : ajouter chaque nom a la liste
+ * blanche ne ferait que repousser le meme probleme sur la fonction suivante.
+ */
+function normalizeFn(fnName: string): string {
+  return fnName.includes('.') ? fnName : `app.${fnName}`;
+}
+
 export async function callApp<T = QueryResultRow>(
   sql: Sql,
   fnName: string,
   args: readonly unknown[] = [],
 ): Promise<T | null> {
+  fnName = normalizeFn(fnName);
   if (!APP_FUNCTIONS.has(fnName)) {
     throw new Error(`Fonction non autorisee : ${fnName}`);
   }
@@ -230,6 +248,7 @@ export async function callAppSet<T = QueryResultRow>(
   fnName: string,
   args: readonly unknown[] = [],
 ): Promise<T[]> {
+  fnName = normalizeFn(fnName);
   if (!APP_FUNCTIONS.has(fnName)) {
     throw new Error(`Fonction non autorisee : ${fnName}`);
   }

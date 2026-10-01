@@ -23,7 +23,8 @@
     "verify:export": "tsc src/lib/pdf.ts --outDir .tmp-pdf --module commonjs --target es2022 --moduleResolution node --skipLibCheck --esModuleInterop && node scripts/verify-export.mjs",
     "verify:room": "tsc src/lib/room-token.ts --outDir .tmp-room --module commonjs --target es2022 --moduleResolution node --skipLibCheck --esModuleInterop && node --env-file=.env.local scripts/verify-room.mjs",
     "check:pages": "powershell -ExecutionPolicy Bypass -File scripts/check-pages.ps1",
-    "check:perms": "powershell -ExecutionPolicy Bypass -File scripts/check-permissions.ps1"
+    "check:perms": "powershell -ExecutionPolicy Bypass -File scripts/check-permissions.ps1",
+    "check:calls": "powershell -ExecutionPolicy Bypass -File scripts/check-app-calls.ps1"
   },
   "dependencies": {
     "@daily-co/daily-js": "^0.92.2",
