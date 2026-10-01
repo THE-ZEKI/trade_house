@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import type { SessionUser } from '@/lib/auth';
 import { EMOTION, RESULT_TYPE, spec, TONE_CLASS, type Tone } from '@/lib/status';
+import { t } from '@/lib/i18n';
 import { Card, PageHeader } from '@/components/ui';
 
 /**
@@ -111,13 +112,16 @@ const INITIAL: Form = {
 export default function ReportForm({
   user,
   locale,
-  label,
-}: {
+} : {
   user: SessionUser;
+  /*
+   * La locale, pas une fonction : ce composant est client, et une fonction
+   * ne peut pas traverser la frontiere serveur/client.
+   */
   locale: string | null;
-  label: (k: string) => string;
 }) {
   const router = useRouter();
+  const label = (k: string) => t(locale, k);
   const [form, setForm] = useState<Form>(INITIAL);
   const [busy, setBusy] = useState<'draft' | 'submit' | null>(null);
   const [error, setError] = useState<string | null>(null);

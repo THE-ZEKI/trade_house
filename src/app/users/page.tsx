@@ -5,6 +5,7 @@ import { t } from '@/lib/i18n';
 import Shell from '@/components/Shell';
 import { Card, Empty, Badge, PageHeader } from '@/components/ui';
 import { UserCheck, UserX, ShieldCheck, ShieldOff } from 'lucide-react';
+import InviteUser from '@/components/InviteUser';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +40,10 @@ export default async function UsersPage() {
     v ? new Date(String(v)).toLocaleDateString(isEn ? 'en-GB' : 'fr-FR') : '-';
 
   const active = users.filter((u) => u.is_active === true).length;
+  // Seuls les managers peuvent etre_selectionnes comme tuteur d'un trader.
+  const managers = users
+    .filter((u) => u.role === 'manager')
+    .map((u) => ({ id: String(u.id), full_name: String(u.full_name) }));
 
   return (
     <Shell user={user}>

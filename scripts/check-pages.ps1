@@ -69,6 +69,7 @@ foreach ($a in $ACCOUNTS) {
   if ($a.role -eq 'admin') { $paths += @('/users', '/audit', '/settings') }
   if ($a.role -in @('admin', 'manager')) { $paths += @("/traders/$traderId") }
   if ($reportId)  { $paths += "/reports/$reportId" }
+  if ($a.role -eq 'trader') { $paths += '/reports/new' }
   if ($meetingId) { $paths += "/meetings/$meetingId" }
 
   foreach ($p in $paths) { Test-Page $s $p }

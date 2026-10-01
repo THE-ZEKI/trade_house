@@ -3,6 +3,8 @@ import { asUser, queryOneWith, queryWith } from '@/lib/db';
 import { pageUserAs } from '@/lib/page';
 import { t } from '@/lib/i18n';
 import Shell from '@/components/Shell';
+import UserActions from '@/components/UserActions';
+import { ShieldCheck, ShieldOff } from 'lucide-react';
 import { Card, Empty, PageHeader, Stat, PlanBadge } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
@@ -90,6 +92,8 @@ export default async function TraderPage({ params }: Params) {
           />
         </div>
 
+        <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
+          <div className="grid content-start gap-4">
         <Card title="Compte">
           <dl className="divide-y divide-border">
             {(
@@ -127,6 +131,20 @@ export default async function TraderPage({ params }: Params) {
             </ul>
           )}
         </Card>
+          </div>
+          <div className="lg:sticky lg:top-20 lg:self-start">
+            <Card title="Actions">
+              <div className="p-4">
+                <UserActions
+                  user={user}
+                  targetId={String(trader.id)}
+                  isActive={trader.is_active === true}
+                  mfaEnforced={trader.mfa_enforced === true}
+                />
+              </div>
+            </Card>
+          </div>
+        </div>
       </div>
     </Shell>
   );

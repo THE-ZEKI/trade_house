@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, HelpCircle, X, Loader2, AlertCircle } from 'lucide-react';
+import { t } from '@/lib/i18n';
 
 /**
  * Reponse a une reunion (DESIGN_SYSTEM §6.2, §6.6).
@@ -23,12 +24,16 @@ const CHOICES = [
 export default function RsvpButtons({
   meetingId,
   current,
-  label,
+  locale,
   compact,
 }: {
   meetingId: string;
   current: string | null;
-  label: (k: string) => string;
+  /*
+   * La locale, pas une fonction de traduction : ce composant est client, et
+   * une fonction ne peut pas traverser la frontiere serveur/client.
+   */
+  locale: string | null;
   compact?: boolean;
 }) {
   const router = useRouter();
@@ -87,7 +92,7 @@ export default function RsvpButtons({
               {busy === c.value
                 ? <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2.5} />
                 : <Icon className="h-3.5 w-3.5" strokeWidth={2.5} />}
-              <span className="truncate">{label(c.labelKey)}</span>
+              <span className="truncate">{t(locale, c.labelKey)}</span>
             </button>
           );
         })}

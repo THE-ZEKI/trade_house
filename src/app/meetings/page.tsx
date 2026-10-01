@@ -94,7 +94,7 @@ export default async function MeetingsPage() {
                       <RsvpButtons
                         meetingId={String(m.id)}
                         current={typeof m.rsvp_status === 'string' ? m.rsvp_status : null}
-                        label={(k) => t(user.locale, k)}
+                        locale={user.locale}
                         compact
                       />
                     ) : (

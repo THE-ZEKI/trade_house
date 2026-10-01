@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { pageUser } from '@/lib/page';
 import { can } from '@/lib/permissions';
-import { t } from '@/lib/i18n';
+
 import Shell from '@/components/Shell';
 import ReportForm from './ReportForm';
 
@@ -23,7 +23,7 @@ export default async function NewReportPage() {
   return (
     <Shell user={user}>
       <div className="mx-auto max-w-[760px] space-y-5">
-        <ReportForm user={user} locale={user.locale} label={(k) => t(user.locale, k)} />
+        <ReportForm user={user} locale={user.locale} />
       </div>
     </Shell>
   );
