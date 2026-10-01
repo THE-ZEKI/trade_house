@@ -137,14 +137,14 @@ $MATRICE = @(
   @{ path = "/traders/$traderId"; marker = 'Desactiver le compte';            in = @('admin'); label = 'desactiver un compte' }
   @{ path = "/traders/$traderId"; marker = 'Imposer la 2FA';                 in = @('admin'); label = 'imposer la 2FA' }
 
-  @{ path = '/reports'; marker = 'Nouveau rapport'; in = @('trader');           label = 'creer un rapport (trader)' }
-  @{ path = '/reports'; marker = 'Nouveau rapport'; in = @('admin','manager');  label = 'creer un rapport (manager/admin : interdit)' }
-  @{ path = "/reports/$reviewId"; marker = 'Demander des correctifs'; in = @('admin','manager'); label = 'demander des correctifs' }
-  @{ path = "/reports/$reviewId"; marker = 'Demander des correctifs'; in = @('trader');           label = 'demander des correctifs (trader : interdit)' }
-  @{ path = "/reports/$reportId"; marker = 'Valider';               in = @('trader');           label = 'valider (trader : interdit)' }
-
-  @{ path = '/meetings'; marker = 'Planifier une reunion'; in = @('admin','manager'); label = 'planifier une reunion' }
-  @{ path = '/meetings'; marker = 'Planifier une reunion'; in = @('trader');           label = 'planifier (trader : interdit)' }
+  # Une entree par marqueur, avec les seuls roles autorises. L absence est
+  # testee implicitement : pour tout autre role, le marqueur doit disparaitre.
+  # Ecrire deux fois le meme marqueur avec des attentes opposees est la
+  # source des erreurs de matrice vues jusqu ici.
+  @{ path = '/reports';             marker = 'Nouveau rapport';           in = @('trader');           label = 'creer un rapport' }
+  @{ path = "/reports/$reviewId"; marker = 'Demander des correctifs'; in = @('admin','manager');  label = 'demander des correctifs' }
+  @{ path = "/reports/$reviewId"; marker = 'Valider';                in = @('admin','manager');  label = 'valider un rapport' }
+  @{ path = '/meetings';           marker = 'Planifier une reunion';  in = @('admin','manager');  label = 'planifier une reunion' }
 )
 
 $echecs = 0
