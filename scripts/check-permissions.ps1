@@ -79,6 +79,15 @@ $ACCOUNTS = @(
 # qui n'est pas l'application n'est pas fiable : il doit trouver ses donnees.
 $sAdmin = Login $ACCOUNTS[0].email $ACCOUNTS[0].mdp
 
+# HTML rendu d'une page pour la session donnee. Vide si la page est
+# injoignable : un controle de permission sur une page absente n'a pas de sens.
+function Get-Html($s, [string]$path) {
+  try {
+    return (Invoke-WebRequest -Uri "$Base$path" -WebSession $s -UseBasicParsing -TimeoutSec 25).Content
+  } catch {
+    return ''
+  }
+}
 function Get-Json($s, [string]$path) {
   try {
     (Invoke-WebRequest -Uri "$Base$path" -WebSession $s -UseBasicParsing -TimeoutSec 20).Content | ConvertFrom-Json

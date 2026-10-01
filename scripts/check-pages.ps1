@@ -42,6 +42,21 @@ function Login([string]$email, [string]$password) {
   return $s
 }
 
+# Une ressource qui n existe pas DOIT repondre 404 ou 403. Un 200 y serait un
+# defaut de cloisonnement bien plus grave qu'une page manquante.
+function Test-Forbidden($s, [string]$path, [string]$what) {
+  try {
+    $r = Invoke-WebRequest -Uri "$Base$path" -WebSession $s -UseBasicParsing -TimeoutSec 25
+    $code = $r.StatusCode
+  } catch {
+    $code = [int]$_.Exception.Response.StatusCode
+  }
+  if ($code -eq 404 -or $code -eq 403) {
+    "{0,-8} {1,-3} {2}" -f 'ok', $code, $what
+  } else {
+    "{0,-8} {1,-3} {2}" -f 'ALERTE', $code, $what
+  }
+}
 function Test-Page($s, [string]$path) {
   try {
     $r = Invoke-WebRequest -Uri "$Base$path" -WebSession $s -UseBasicParsing -TimeoutSec 25
@@ -112,12 +127,30 @@ foreach ($a in $ACCOUNTS) {
     continue
   }
 
+  # Un rapport n est teste avec un role que s il est REELLEMENT visible par
+  # ce role. Un trader ne voit pas les rapports des autres : lui faire ouvrir
+  # le rapport d un collegue retournerait 404, ce qui est le RLS qui
+  # fonctionne, et non une panne. On interroge donc l API avec LA session
+  # du role reellement teste.
+  $ownReports  = @(Get-Json $s '/api/reports'  | ForEach-Object { $_.reports })
+  $ownMeetings = @(Get-Json $s '/api/meetings' | ForEach-Object { $_.meetings })
+  $myReportId  = if ($ownReports.Count)  { [string]$ownReports[0].id }  else { $null }
+  $myMeetingId = if ($ownMeetings.Count) { [string]$ownMeetings[0].id } else { $null }
+
   $paths = @('/', '/reports', '/meetings', '/profile', '/notifications')
   if ($a.role -eq 'admin') { $paths += @('/users', '/audit', '/settings') }
-  if ($a.role -in @('admin', 'manager') -and $traderId)  { $paths += "/traders/$traderId" }
-  if ($reportId)  { $paths += "/reports/$reportId" }
+  if ($a.role -in @('admin', 'manager') -and $traderId) { $paths += "/traders/$traderId" }
+  if ($myReportId)  { $paths += "/reports/$myReportId" }
   if ($a.role -eq 'trader') { $paths += '/reports/new' }
-  if ($meetingId) { $paths += "/meetings/$meetingId" }
+  if ($myMeetingId) { $paths += "/meetings/$myMeetingId" }
+
+  # Verification negative explicite : un trader ne doit PAS voir le rapport
+  # d un collegue. C est le controle le plus utile de la liste.
+  if ($a.role -eq 'trader' -and $reportId -and $myReportId -ne $reportId) {
+    Write-Host ''
+    Write-Host '  -- cloisonnement entre traders --'
+    Test-Forbidden $s "/reports/$reportId" 'rapport d un autre trader'
+  }
 
   foreach ($p in $paths) { Test-Page $s $p }
 }
