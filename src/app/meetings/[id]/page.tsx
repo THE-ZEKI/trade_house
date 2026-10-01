@@ -6,6 +6,9 @@ import Shell from '@/components/Shell';
 import { Card, Empty, RsvpBadge, CodeBadge, PageHeader, Badge } from '@/components/ui';
 import { MEETING_STATUS, MEETING_TYPE, ATTENDANCE } from '@/lib/status';
 import { UserCheck, Repeat, Video } from 'lucide-react';
+import RsvpButtons from '@/components/RsvpButtons';
+import { can } from '@/lib/permissions';
+import { t } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
 
@@ -117,7 +120,16 @@ export default async function MeetingDetail({ params }: Params) {
                     <div className="truncate text-sm">{String(p.full_name)}</div>
                     <div className="truncate text-xs text-text-faint">{String(p.email)}</div>
                   </div>
-                  <RsvpBadge status={p.rsvp_status} locale={user.locale} />
+                  {can(user, 'meeting.rsvp') && p.user_id === user.userId ? (
+                    <RsvpButtons
+                      meetingId={String(meeting.id)}
+                      current={typeof p.rsvp_status === 'string' ? p.rsvp_status : null}
+                      label={(k) => t(user.locale, k)}
+                      compact
+                    />
+                  ) : (
+                    <RsvpBadge status={p.rsvp_status} locale={user.locale} />
+                  )}
                 </li>
               ))}
             </ul>

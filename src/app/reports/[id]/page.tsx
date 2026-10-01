@@ -5,8 +5,10 @@ import { pageUser } from '@/lib/page';
 import { t } from '@/lib/i18n';
 import Shell from '@/components/Shell';
 import { Card, Empty, StatusBadge, ReportFlags, PlanBadge, CodeBadge, PageHeader, Badge } from '@/components/ui';
-import { RESULT_TYPE } from '@/lib/status';
+import { RESULT_TYPE, SEVERITY, CORRECTION_STATUS } from '@/lib/status';
 import { Layers, MessageSquareWarning } from 'lucide-react';
+import ReportActions from '@/components/ReportActions';
+import AddCorrection from '@/components/AddCorrection';
 
 export const dynamic = 'force-dynamic';
 
@@ -96,8 +98,9 @@ export default async function ReportDetail({ params }: Params) {
           {openCorrections > 0 && (
             <Badge tone="danger" Icon={MessageSquareWarning}>{openCorrections} correctif(s)</Badge>
           )}
-        <div className="grid gap-4 lg:grid-cols-2">
         </div>
+        <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
+          <div className="grid content-start gap-4">
           <Card title="Donnees de session">
             <dl className="divide-y divide-border">
               {(
@@ -148,7 +151,6 @@ export default async function ReportDetail({ params }: Params) {
               ) : null}
             </div>
           </Card>
-        </div>
 
         <Card title="Correctifs">
           {corrections.length === 0 ? (
@@ -156,20 +158,14 @@ export default async function ReportDetail({ params }: Params) {
           ) : (
             <ul className="divide-y divide-border">
               {corrections.map((c) => (
-                <li key={String(c.id)} className="px-4 py-3">
+                <li key={String(c.id)} className="px-5 py-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge
-                      tone={c.severity === 'major' ? 'danger' : c.severity === 'minor' ? 'warn' : 'info'}
-                    >
-                      {String(c.severity ?? 'info')}
-                    </Badge>
-                    <span className="text-sm">{String(c.target_field ?? c.target_type)}</span>
-                    <Badge tone={c.status === 'resolved' ? 'success' : 'neutral'}>
-                      {String(c.status)}
-                    </Badge>
+                    <CodeBadge table={SEVERITY} code={c.severity} locale={user.locale} prefix="severity" />
+                    <span className="text-sm">{String(c.target_field ?? c.target_type ?? "")}</span>
+                    <CodeBadge table={CORRECTION_STATUS} code={c.status} locale={user.locale} prefix="correction" />
                     <span className="tnum ml-auto text-xs text-text-faint">{fmt(c.created_at)}</span>
                   </div>
-                  <p className="mt-1.5 text-sm">{String(c.message ?? '')}</p>
+                  <p className="mt-1.5 text-sm">{String(c.message ?? "")}</p>
                   {c.trader_reply ? (
                     <p className="mt-1 text-xs text-text-muted">Reponse : {String(c.trader_reply)}</p>
                   ) : null}
@@ -177,6 +173,9 @@ export default async function ReportDetail({ params }: Params) {
               ))}
             </ul>
           )}
+          <div className="border-t border-border p-4">
+            <AddCorrection user={user} reportId={String(report.id)} />
+          </div>
         </Card>
 
         <Card title="Versions">
@@ -196,6 +195,19 @@ export default async function ReportDetail({ params }: Params) {
             </ul>
           )}
         </Card>
+          </div>
+          <div className="lg:sticky lg:top-20 lg:self-start">
+            <Card title="Actions">
+              <div className="p-4">
+                <ReportActions
+                  user={user}
+                  reportId={String(report.id)}
+                  status={String(report.status)}
+                />
+              </div>
+            </Card>
+          </div>
+        </div>
       </div>
     </Shell>
   );

@@ -5,6 +5,8 @@ import { t } from '@/lib/i18n';
 import Shell from '@/components/Shell';
 import { Card, Empty, RsvpBadge, CodeBadge, PageHeader } from '@/components/ui';
 import { MEETING_STATUS, LINK_PROVIDER } from '@/lib/status';
+import RsvpButtons from '@/components/RsvpButtons';
+import { can } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -89,7 +91,12 @@ export default async function MeetingsPage() {
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
                     {isTrader ? (
-                      <RsvpBadge status={m.rsvp_status} locale={user.locale} />
+                      <RsvpButtons
+                        meetingId={String(m.id)}
+                        current={typeof m.rsvp_status === 'string' ? m.rsvp_status : null}
+                        label={(k) => t(user.locale, k)}
+                        compact
+                      />
                     ) : (
                       <span className="tnum text-xs text-text-faint">
                         {String(m.accepted_count ?? 0)}/{String(m.participants_count ?? 0)}
