@@ -1,6 +1,7 @@
-import Link from 'next/link';
-import { asUser, queryWith } from '@/lib/db';
+import Link from 'next/link';import { asUser, queryWith } from '@/lib/db';
 import { pageUser } from '@/lib/page';
+import { can } from '@/lib/permissions';
+import { FilePlus2 } from 'lucide-react';
 import { t } from '@/lib/i18n';
 import Shell from '@/components/Shell';
 import { Card, Empty, StatusBadge, ReportFlags, PageHeader } from '@/components/ui';
@@ -54,6 +55,17 @@ export default async function ReportsPage() {
             isTrader
               ? 'Vos rapports de session'
               : 'File de revision, du plus ancien au plus recent'
+          }
+          actions={
+            can(user, 'report.create') ? (
+              <Link
+                href="/reports/new"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-[10px] bg-sky-500 px-4 text-sm font-semibold text-white transition-colors hover:bg-sky-600"
+              >
+                <FilePlus2 className="h-4 w-4" strokeWidth={2.5} />
+                {t(user.locale, 'action.new_report')}
+              </Link>
+            ) : null
           }
         />
 
