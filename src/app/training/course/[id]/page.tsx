@@ -8,6 +8,8 @@ import { can } from '@/lib/permissions';
 import { ArrowLeft, Send, Users } from 'lucide-react';
 import CourseEditor from '@/components/CourseEditor';
 import AssignCourse from '@/components/AssignCourse';
+import CourseFiles from '@/components/CourseFiles';
+import type { CourseFile } from '@/components/CourseFiles';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +27,7 @@ export default async function CoursePage({ params }: Params) {
   const { id } = await params;
   const isManager = can(user, 'training.create_course');
 
-  const { course, exercises, traders, assignments } = await asUser(user.userId, async (sql) => {
+  const { course, exercises, traders, assignments, files } = await asUser(user.userId, async (sql) => {
     const c = await queryOneWith<{
       id: string;
       title: string;
@@ -39,7 +41,7 @@ export default async function CoursePage({ params }: Params) {
          from public.training_courses where id = $1::uuid`,
       [id],
     );
-    if (!c) return { course: null, exercises: [], traders: [], assignments: [] };
+    if (!c) return { course: null, exercises: [], traders: [], assignments: [], files: [] };
 
     const e = await queryWith(
       sql,
@@ -66,7 +68,18 @@ export default async function CoursePage({ params }: Params) {
         order by a.assigned_at desc`,
       [id],
     );
-    return { course: c, exercises: e, traders: t, assignments: a };
+    // Supports du cours. La liste est filtree par le RLS : le RLS n'autorise
+    // que l'auteur, l'admin et les traders a qui le cours est attribue. Un
+    // tiers voit un tableau vide, ce qui est le comportement voulu.
+    const f = await queryWith<CourseFile>(
+      sql,
+      `select f.id, f.original_name as name, f.mime_type as mime, f.size_bytes as size
+         from public.training_course_files f
+        where f.course_id = $1::uuid
+        order by f.created_at`,
+      [id],
+    );
+    return { course: c, exercises: e, traders: t, assignments: a, files: f };
   });
 
   if (!course) notFound();
@@ -97,6 +110,12 @@ export default async function CoursePage({ params }: Params) {
             <div className="whitespace-pre-wrap px-4 py-4 text-sm">{course.content || 'Cours non redige.'}</div>
           </Card>
         )}
+
+        <Card title="Supports du cours">
+          <div className="px-4 py-4">
+            <CourseFiles courseId={course.id} files={files} canEdit={canEdit} />
+          </div>
+        </Card>
 
         {canEdit && (
           <Card title={`Exercices (${exercises.length})`}>

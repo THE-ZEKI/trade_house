@@ -55,7 +55,16 @@ export default async function TrainingPage() {
       : await queryWith(
           sql,
           // Le trader ne voit que les cours qui lui sont reellement attribues.
-          `select distinct c.id, c.title, c.summary, c.status, u.full_name as author
+          //
+          // DISTINCT + ORDER BY : PostgreSQL exige que toute expression de
+          // tri figure dans la liste SELECT. Or le tri porte sur
+          // c.updated_at, qui n'est pas selectionne : la page renvoyait une
+          // erreur 500 « pour SELECT DISTINCT, ORDER BY, les expressions
+          // doivent apparaitre dans la liste SELECT » — c'est-a-dire
+          // l'affectation existait, mais la page etait INACCESSIBLE au
+          // trader. On selectionne donc aussi la colonne de tri.
+          `select distinct c.id, c.title, c.summary, c.status, u.full_name as author,
+                  c.updated_at
              from public.training_assignments a
              join public.training_courses c on c.id = a.course_id
              join public.users u on u.id = c.author_id

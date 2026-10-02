@@ -7,6 +7,8 @@ import { can } from '@/lib/permissions';
 import Link from 'next/link';
 import { ArrowLeft, BookOpen, ClipboardList, Download } from 'lucide-react';
 import Exercise from '@/components/TrainingExercise';
+import CourseFiles from '@/components/CourseFiles';
+import type { CourseFile } from '@/components/CourseFiles';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,10 +43,10 @@ export default async function TrainingAssignment({ params }: Params) {
   const { id } = await params;
   const isManager = can(user, 'training.review');
 
-  const { assignment, exercises } = await asUser(user.userId, async (sql) => {
+  const { assignment, exercises, files } = await asUser(user.userId, async (sql) => {
     const a = await queryWith(
       sql,
-      `select a.id, a.status, a.due_at, a.trader_id, c.title, c.summary, c.content
+      `select a.id, a.status, a.due_at, a.trader_id, a.course_id, c.title, c.summary, c.content
          from public.training_assignments a
          join public.training_courses c on c.id = a.course_id
         where a.id = $1::uuid`,
@@ -72,7 +74,22 @@ export default async function TrainingAssignment({ params }: Params) {
         order by e.position`,
       [id],
     );
-    return { assignment: a[0] ?? null, exercises: e };
+    // Supports pedagogiques du cours. Le RLS les limite a l'auteur, a l'admin
+    // et aux traders a qui le cours est attribue : c'est exactement le lecteur
+    // de cette page, donc le trader voit bien les siens.
+    //
+    // Le course_id est relu dans la table : la requete precedente declare un
+    // alias (a) qui n'existe plus d'ici. Un alias ne survit pas a la fin du
+    // statement, et PostgreSQL le refuse — c'etait la cause du 500.
+    const f = await queryWith<CourseFile>(
+      sql,
+      `select f.id, f.original_name as name, f.mime_type as mime, f.size_bytes as size
+         from public.training_course_files f
+        where f.course_id = (select course_id from public.training_assignments where id = $1::uuid)
+        order by f.created_at`,
+      [id],
+    );
+    return { assignment: a[0] ?? null, exercises: e, files: f };
   });
 
   if (!assignment) notFound();
@@ -110,6 +127,12 @@ export default async function TrainingAssignment({ params }: Params) {
             <div className="whitespace-pre-wrap text-sm leading-relaxed">
               {String(assignment.content ?? '').trim() || 'Le contenu du cours n a pas encore ete redige.'}
             </div>
+          </div>
+        </Card>
+
+        <Card title="Supports du cours">
+          <div className="px-4 py-4">
+            <CourseFiles courseId={String(assignment.course_id)} files={files} canEdit={false} />
           </div>
         </Card>
 
