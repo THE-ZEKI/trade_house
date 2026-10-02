@@ -1,6 +1,8 @@
 param([string]$Base = 'http://127.0.0.1:3000')
 $ErrorActionPreference = 'Stop'
 
+. (Join-Path $PSScriptRoot '_th-accounts.ps1')
+
 function Login($email, $password) {
   $s = New-Object Microsoft.PowerShell.Commands.WebRequestSession
   $b = @{ email = $email; password = $password } | ConvertTo-Json
@@ -15,9 +17,15 @@ function Check($s, $role, $path, $libelle, $attendu) {
   "{0} {1,-8} {2,-10} {3}" -f $ok, $role, $path, ($libelle + ' | ' + $sens)
 }
 
-$admin = Login 'admin@trade-house.local' 'Admin!2345'
-$mgr   = Login 'manager@trade-house.local' 'Manager!2345'
-$trd   = Login 'trader1@trade-house.local' 'Trader!2345'
+$ACCT = Get-THAccounts
+Assert-THAccounts $ACCT 'check-actions'
+
+$a   = $ACCT | Where-Object { $_.role -eq 'admin' }
+$m   = $ACCT | Where-Object { $_.role -eq 'manager' }
+$t   = $ACCT | Where-Object { $_.role -eq 'trader' }
+$admin = Login $a.email $a.mdp
+$mgr   = Login $m.email $m.mdp
+$trd   = Login $t.email $t.mdp
 
 Check $admin 'admin'   '/users'    '>Inviter<'             $true
 Check $mgr   'manager' '/users'    '>Inviter<'             $false

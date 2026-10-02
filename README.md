@@ -188,6 +188,27 @@ d'evaluer le RLS) :
 
 Le test se termine par un `ROLLBACK` : la base n'est jamais modifiee.
 
+Les controles d'ecran se connectent reellement : ils ont besoin de trois
+comptes, un par role. Definissez-les dans l'environnement (jamais dans un
+fichier du depot) :
+
+```powershell
+$env:TH_ADMIN_EMAIL='admin@domaine';   $env:TH_ADMIN_PASSWORD='...'
+$env:TH_MANAGER_EMAIL='manager@domaine'; $env:TH_MANAGER_PASSWORD='...'
+$env:TH_TRADER_EMAIL='trader@domaine'; $env:TH_TRADER_PASSWORD='...'
+```
+
+Sans ces variables, les scripts retombent sur les comptes de `009_seed` et
+avertissent. Definir une seule des trois est refuse : melanger un compte reel
+et un compte d'essai produirait des verdicts sans sens, puisque le RLS compare
+le role, pas l'origine du compte.
+
+**En production, aucun compte de developpement n'existe** (voir plus bas) : les
+quatre scripts doivent donc etre lances avec vos propres comptes, sur une copie
+de la base si vous hesitiez a toucher la production. Ils creent des donnees
+(`check:files` depose un rapport, `check:actions` joue le parcours de revue) :
+ils modifient la base visee.
+
 ## Verification
 
 

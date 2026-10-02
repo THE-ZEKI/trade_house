@@ -12,6 +12,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+. (Join-Path $PSScriptRoot '_th-accounts.ps1')
+
 # Test de joignabilite en tete : trois " echec de connexion " d'affilee ne
 # disent rien d'utile sur les ecrans, seulement que le serveur manque.
 try {
@@ -65,11 +67,8 @@ $reportId  = $env:TH_REPORT_ID
 $meetingId = $env:TH_MEETING_ID
 $traderId  = $env:TH_TRADER_ID
 
-$ACCOUNTS = @(
-  @{ role = 'admin';   email = 'admin@trade-house.local';   mdp = 'Admin!2345' },
-  @{ role = 'manager'; email = 'manager@trade-house.local'; mdp = 'Manager!2345' },
-  @{ role = 'trader';  email = 'trader1@trade-house.local';  mdp = 'Trader!2345' }
-)
+$ACCOUNTS = Get-THAccounts
+Assert-THAccounts $ACCOUNTS 'check-permissions'
 
 # Un identifiant de rapport ou de reunion est DECOUVERT, jamais fourni.
 #

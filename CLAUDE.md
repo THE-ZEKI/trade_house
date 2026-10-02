@@ -52,10 +52,17 @@
  *   Authorization: Bearer <CRON_SECRET>
  *   -> declenchement toutes les minutes (garantie +/- 1 min du cahier des charges)
  *
- * ACCES AUX COMPTES DE DEVELOPPEMENT
- *   admin@trade-house.local   / Admin!2345     (2FA activable)
+ * COMPTES DE DEVELOPPEMENT (jeu 009_seed — absent d'une base de production)
+ *   admin@trade-house.local   / Admin!2345
  *   manager@trade-house.local / Manager!2345
  *   trader1@trade-house.local / Trader!2345
- *   trader2@trade-house.local / Trader!2345
- *   -> a supprimer avant la mise en ligne (db/migrations/009_seed.sql)
+ *   -> 009_seed ne les recree PAS si un compte existe deja (garde "seed ignore") :
+ *      sur une base ou le premier administrateur a deja ete cree a la main, il
+ *      faut creer les roles manquants depuis l'ecran, pas relancer le seed.
+ *
+ *   Les controles d'ecran (check:pages, check:perms, check:actions, check:files)
+ *   se connectent reellement et creent des donnees : sur une base de production,
+ *   les lancer avec VOS comptes via $env:TH_ADMIN_EMAIL / TH_MANAGER_EMAIL /
+ *   TH_TRADER_EMAIL (+ _PASSWORD), de preference sur une copie. Melanger un
+ *   compte reel et un compte d'essai est refuse. Voir scripts/_th-accounts.ps1.
  * ---------------------------------------------------------------------------

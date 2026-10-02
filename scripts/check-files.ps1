@@ -1,6 +1,8 @@
 ﻿param([string]$Base = 'http://127.0.0.1:3000')
 $ErrorActionPreference = 'Stop'
 
+. (Join-Path $PSScriptRoot '_th-accounts.ps1')
+
 # Depot de rapport et annotations, de bout en bout (RG-31, RG-32, RG-46).
 #
 # Chaque etape verifie le RESULTAT, pas seulement le code HTTP : une route qui
@@ -98,9 +100,15 @@ function Ensure-Draft($session) {
   return $null
 }
 
-$trd  = Login 'trader1@trade-house.local'  'Trader!2345'
-$mgr  = Login 'manager@trade-house.local' 'Manager!2345'
-$adm  = Login 'admin@trade-house.local'   'Admin!2345'
+$ACCT = Get-THAccounts
+Assert-THAccounts $ACCT 'check-files'
+
+$t1 = $ACCT | Where-Object { $_.role -eq 'trader' }
+$mg = $ACCT | Where-Object { $_.role -eq 'manager' }
+$ad = $ACCT | Where-Object { $_.role -eq 'admin' }
+$trd  = Login $t1.email $t1.mdp
+$mgr  = Login $mg.email $mg.mdp
+$adm  = Login $ad.email $ad.mdp
 
 $report = Ensure-Draft $trd
 if ($null -eq $report) {
