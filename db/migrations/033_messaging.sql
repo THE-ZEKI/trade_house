@@ -258,6 +258,40 @@ language sql stable security definer set search_path = public, pg_temp as $$
   limit 1
 $$;
 
+-- Nom d un interlocuteur, s il est un correspondant legitime.
+--
+-- SECURITY DEFINER : le RLS de public.users rend un manager invisible a son
+-- propre trader (migration 029), donc un JOIN ordinaire renverrait un expediteur
+-- anonyme : et l application contournait alors la cloisonnement pourascade
+-- l affichage.
+--
+-- La fonction refuse de nommer quelqu un avec qui aucun echange n est possible :
+-- passer un identifiant devine n affiche donc pas le nom d un compte stranger.
+create or replace function app.fn_user_display_name(p_user uuid, p_me uuid)
+returns text
+language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare
+  v_name text;
+begin
+  if p_user is null or p_user = p_me then
+    return null;
+  end if;
+
+  -- Le sens importe : can_message(a, b) n est PAS symetrique pour l admin.
+  -- On teste donc dans les deux sens, et on n accepte que si l un des deux
+  -- est vrai, ce qui revient a dire "on peut echanger".
+  if not app.can_message(p_me, p_user) and not app.can_message(p_user, p_me) then
+    return null;
+  end if;
+
+  select full_name into v_name from public.users where id = p_user;
+  return v_name;
+end $$;
+
+comment on function app.fn_user_display_name is
+  'Nom d un interlocuteur, ou NULL s il ne peut pas y avoir d echange avec lui. '
+  'Ne rend que le nom : jamais l email ni une autre colonne.';
+
 -- Nombre de messages recus et non lus : c'est ce qui alimente la pastille.
 create or replace function app.unread_message_count()
 returns int

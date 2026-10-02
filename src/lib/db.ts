@@ -147,6 +147,13 @@ const APP_FUNCTIONS = new Set([
   'app.notify_meeting_created',
   // 032 : echo in-app d une invitation (l email d accueil part ailleurs).
   'app.notify_account_invited',
+  // 033 : messagerie. Le droit d ecrire et le cloisonnement sont decides en
+  // base ; cette liste n autorise que l appel.
+  'app.can_message',
+  'app.send_message',
+  'app.mark_message_read',
+  'app.unread_message_count',
+  'app.fn_user_display_name',
   // 031 : seconde file d envoi, pour les notifications metier par email.
   'app.fn_is_email_event',
   'app.create_email_copies',
