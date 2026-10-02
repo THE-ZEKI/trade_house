@@ -65,9 +65,9 @@ begin
   --
   -- Un INSERT n'etant pas une expression en SQL, il ne peut pas figurer dans
   -- un CASE : la premiere version ecritait `case when ... then (insert ...)
-  -- returning *) else null end`, que PostgreSQL rejette avec « erreur de
-  -- syntaxe sur ou pres de into ». Le role est donc tranche par un IF, et
-  -- l'admin est refuse en amont — il a create_user, qui permet de choisir le
+  -- returning *) else null end`, que PostgreSQL rejette avec "erreur de
+  -- syntaxe sur ou pres de into". Le role est donc tranche par un IF, et
+  -- l'admin est refuse en amont : il a create_user, qui permet de choisir le
   -- manager de tutelle.
   if app.current_user_role() = 'manager' then
     insert into public.users

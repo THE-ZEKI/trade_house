@@ -43,6 +43,11 @@ export type Action =
   // Comptes — administration
   | 'user.invite'
   | 'trader.invite'
+  // 028 : le manager rattache ses traders a lui-meme. `user.manage_team` est
+  // le droit d 'ACTE ; il governne a la fois le bouton « rattacher » et, pour
+  // l 'admin, « detacher ». Il reste distinct de user.update (018), qui
+  // touche role et coordonnees et reste reserve a l 'admin.
+  | 'user.manage_team'
   | 'user.deactivate'
   | 'user.reactivate'
   | 'user.enforce_mfa'
@@ -86,6 +91,7 @@ const MANAGER: Action[] = [
   // restent separees pour que le menu n'expose jamais au manager un bouton
   // qui reinitialiserait le mot de passe d'un tiers.
   'trader.invite',
+  'user.manage_team',
 ];
 
 /**

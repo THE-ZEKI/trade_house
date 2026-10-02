@@ -135,6 +135,10 @@ const APP_FUNCTIONS = new Set([
   // 027 : le manager invite un trader qui tombe sous sa couverture. La
   // fonction impose le role et le manager ; cette liste n'autorise que l'appel.
   'app.invite_trader',
+  // 028 : rattachement d'un trader a son manager. Sans parametre de cible :
+  // un manager ne choisit pas, il prend en charge.
+  'app.assign_trader_manager',
+  'app.unassign_trader_manager',
   'app.accept_invitation',
   'app.revoke_all_sessions',
   // 018 : administration des comptes. La fonction elle-meme exige un

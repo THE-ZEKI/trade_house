@@ -147,6 +147,16 @@ export async function PATCH(request: Request, { params }: Params) {
           };
         }
 
+        case 'assign-manager':
+          // 028 : le manager rattache un de ses traders a LUI-MEME. La fonction
+          // ne prend pas de manager_id : il n'y a rien a choisir. Detacher un
+          // trader reste reserve a l'admin (interdit 2 de la migration).
+          return { user: { id: await callApp<string>(sql, 'assign_trader_manager', [id]) } };
+
+        case 'unassign-manager':
+          // Administrateur uniquement : decide par app.unassign_trader_manager.
+          return { user: { id: await callApp<string>(sql, 'unassign_trader_manager', [id]) } };
+
         case 'anonymize': {
           // 018 : droit a l'oubli. On n'efface pas la ligne, seulement
           // l'identite — l'historique des rapports reste rattache.

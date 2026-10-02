@@ -7,6 +7,7 @@ import Shell from '@/components/Shell';
 import { Card, Empty, Badge, PageHeader } from '@/components/ui';
 import { UserCheck, UserX, ShieldCheck} from 'lucide-react';
 import InviteUser from '@/components/InviteUser';
+import ManagerAssignment from '@/components/ManagerAssignment';
 import UserSearch from '@/components/UserSearch';
 
 export const dynamic = 'force-dynamic';
@@ -91,6 +92,7 @@ export default async function UsersPage({
                     <th className="px-4 py-2 font-medium">Nom</th>
                     <th className="px-4 py-2 font-medium">Email</th>
                     <th className="px-4 py-2 font-medium">Role</th>
+                    <th className="px-4 py-2 font-medium">Manager</th>
                     <th className="px-4 py-2 font-medium">Etat</th>
                     <th className="tnum px-4 py-2 font-medium">Rapports</th>
                     <th className="px-4 py-2 font-medium">Derniere connexion</th>
@@ -115,6 +117,20 @@ export default async function UsersPage({
                         <Badge tone={u.role === 'admin' ? 'accent' : 'neutral'} Icon={u.role === 'admin' ? ShieldCheck : UserCheck}>
                           {t(user.locale, `role.${u.role}`)}
                         </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        {u.role === 'trader' && can(user, 'user.manage_team') ? (
+                          <ManagerAssignment
+                            traderId={String(u.id)}
+                            managerName={u.manager_name ? String(u.manager_name) : null}
+                            isAdmin={user.role === 'admin'}
+                            isSelf={String(u.id) === user.userId}
+                          />
+                        ) : u.manager_name ? (
+                          <span className="text-xs text-text-muted">{String(u.manager_name)}</span>
+                        ) : (
+                          <span className="text-xs text-text-faint">-</span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap items-center gap-1">
