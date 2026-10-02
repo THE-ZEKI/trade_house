@@ -139,6 +139,12 @@ const APP_FUNCTIONS = new Set([
   // un manager ne choisit pas, il prend en charge.
   'app.assign_trader_manager',
   'app.unassign_trader_manager',
+  // 030 : routage des notifications. manager_of repond a « qui prevenir »,
+  // notify_ids encapsule le filtrage des identifiants nuls.
+  'app.manager_of',
+  'app.notify_ids',
+  'app.fn_meeting_participant_ids',
+  'app.notify_meeting_created',
   'app.accept_invitation',
   'app.revoke_all_sessions',
   // 018 : administration des comptes. La fonction elle-meme exige un
