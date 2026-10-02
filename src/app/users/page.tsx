@@ -4,7 +4,7 @@ import { pageUserAs } from '@/lib/page';
 import { t } from '@/lib/i18n';
 import Shell from '@/components/Shell';
 import { Card, Empty, Badge, PageHeader } from '@/components/ui';
-import { UserCheck, UserX, ShieldCheck, ShieldOff } from 'lucide-react';
+import { UserCheck, UserX, ShieldCheck} from 'lucide-react';
 import InviteUser from '@/components/InviteUser';
 import UserSearch from '@/components/UserSearch';
 
@@ -62,6 +62,7 @@ export default async function UsersPage({
         <PageHeader
           title={t(user.locale, 'nav.users')}
           subtitle={`${users.length} comptes · ${active} actifs`}
+          actions={<InviteUser managers={managers} />}
         />
 
         <UserSearch q={q ?? ''} role={role ?? ''} />

@@ -5,8 +5,6 @@ import { AppError } from '@/lib/errors';
 
 export const dynamic = 'force-dynamic';
 
-type Body = { token: string; password: string } | null;
-
 /**
  * POST /api/auth/password/reset — A1
  *

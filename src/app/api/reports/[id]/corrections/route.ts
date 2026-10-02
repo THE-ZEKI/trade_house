@@ -7,7 +7,6 @@ export const dynamic = 'force-dynamic';
 
 type Params = { params: Promise<{ id: string }> };
 
-const TARGET_TYPES = ['general', 'field', 'file'];
 const FIELD_TARGETS = new Set(['general', 'field', 'file']);
 const SEVERITIES = ['mandatory', 'suggestion'];
 const SHAPES = ['rectangle', 'circle', 'arrow', 'freehand', 'text'];

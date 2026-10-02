@@ -1,4 +1,4 @@
-import { asUser, callApp, queryOne } from '@/lib/db';
+import { asUser, callApp} from '@/lib/db';
 import { jsonError, jsonOk } from '@/lib/http';
 import { requireUser } from '@/lib/auth';
 import { encryptSecret } from '@/lib/crypto';

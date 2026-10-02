@@ -4,12 +4,12 @@ import { asUser, queryOneWith, queryWith } from '@/lib/db';
 import { pageUser } from '@/lib/page';
 import Shell from '@/components/Shell';
 import { Card, Empty, RsvpBadge, CodeBadge, PageHeader, Badge } from '@/components/ui';
-import { MEETING_STATUS, MEETING_TYPE, ATTENDANCE } from '@/lib/status';
+import { MEETING_STATUS, MEETING_TYPE} from '@/lib/status';
 import { UserCheck, Repeat, Video } from 'lucide-react';
 import RsvpButtons from '@/components/RsvpButtons';
 import { can } from '@/lib/permissions';
 import SendReminder from '@/components/SendReminder';
-import { t } from '@/lib/i18n';
+import MeetingActions from '@/components/MeetingActions';
 
 export const dynamic = 'force-dynamic';
 
@@ -89,6 +89,21 @@ export default async function MeetingDetail({ params }: Params) {
           {meeting.recurrence_rule ? <Badge tone="neutral" Icon={Repeat}>Recurrente</Badge> : null}
           {meeting.recording_enabled === true ? <Badge tone="neutral" Icon={Video}>Enregistrement</Badge> : null}
         </div>
+
+        {/* Une reunion terminee ou annulee n'a plus rien a deplacer : les boutons
+            seraient proposes et refuses. */}
+        {meeting.status !== 'ended' && meeting.status !== 'cancelled' && (
+          <MeetingActions
+            meetingId={id}
+            canManage={
+              can(user, 'meeting.cancel') &&
+              (user.role === 'admin' || meeting.created_by === user.userId)
+            }
+            currentLink={(meeting.current_link_url as string | null) ?? null}
+            defaultStart={String(meeting.starts_at ?? '').slice(0, 16)}
+            defaultDuration={Number(meeting.duration_min ?? 30)}
+          />
+        )}
 
         <Card title="Details">
           <dl className="divide-y divide-border">

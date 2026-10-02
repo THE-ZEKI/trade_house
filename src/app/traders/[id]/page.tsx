@@ -5,7 +5,7 @@ import { t } from '@/lib/i18n';
 import Shell from '@/components/Shell';
 import UserActions from '@/components/UserActions';
 import EditUser from '@/components/EditUser';
-import { ShieldCheck, ShieldOff } from 'lucide-react';
+
 import { Card, Empty, PageHeader, Stat, PlanBadge } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';

@@ -88,14 +88,13 @@ export async function POST(request: Request, { params }: Params) {
  * revue que les autres, sinon la regularity de l'ancien (le suivi de presence)
  * serait triviale a contourner.
  */
-export async function PUT(request: Request, { params }: Params) {
+export async function PUT(request: Request) {
   const raw = await request.json().catch(() => null);
   const body = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
-  const { id } = await params;
 
   try {
     const user = await requireUser();
-    const { report, reason } = await asUser(user.userId, async (sql) => {
+    const { report } = await asUser(user.userId, async (sql) => {
       const rows = await callAppSet(sql, 'declare_no_trade', [
         typeof body.sessionDate === 'string' ? body.sessionDate : null,
         typeof body.reason === 'string' ? body.reason : null,

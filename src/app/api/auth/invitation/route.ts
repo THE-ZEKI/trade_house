@@ -1,6 +1,5 @@
-import { callApp, asUser, queryOne, withTransaction } from '@/lib/db';
+import { callApp, asUser} from '@/lib/db';
 import { jsonError, jsonOk } from '@/lib/http';
-import { hashPassword } from '@/lib/password';
 import { appUrl, mayExposeToken, sendEmail } from '@/lib/email';
 import { requireUser } from '@/lib/auth';
 import { AppError } from '@/lib/errors';

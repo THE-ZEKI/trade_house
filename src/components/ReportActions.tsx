@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Loader2, AlertCircle, MessageSquareWarning, RotateCcw,
+  Loader2,   AlertCircle,  
 } from 'lucide-react';
 import { reportActionsFor } from '@/lib/permissions';
+import RequestCorrections from '@/components/RequestCorrections';
 import type { SessionUser } from '@/lib/auth';
 
 /**
@@ -51,10 +52,16 @@ export default function ReportActions({
   user,
   reportId,
   status,
+  files = [],
+  fields = [],
 }: {
   user: SessionUser;
   reportId: string;
   status: string;
+  /** Pieces jointes du rapport : cibles d un correctif. */
+  files?: { id: string; original_name: string }[];
+  /** Champs du rapport : cibles d un correctif. */
+  fields?: string[];
 }) {
   const router = useRouter();
   const actions = reportActionsFor(user, status);
@@ -141,7 +148,27 @@ export default function ReportActions({
         ))}
       </div>
 
-      {pendingSpec && (
+      {/* « Demander des correctifs » a son propre panneau : RG-42 exige au moins
+          un correctif ouvert, or le panneau generique ne demandait qu une
+          echeance. L'operation echouait donc toujours. */}
+      {pending === 'request-corrections' && (
+        <div className="rounded-lg border border-border bg-surface p-4 shadow-[var(--shadow-sm)]">
+          <RequestCorrections
+            reportId={reportId}
+            files={files}
+            fields={fields}
+            defaultDeadline={deadline}
+            onDone={() => {
+              setPending(null);
+              setError(null);
+              router.refresh();
+            }}
+            onCancel={() => setPending(null)}
+          />
+        </div>
+      )}
+
+      {pendingSpec && pendingSpec.apiAction !== 'request-corrections' && (
         <div className="rounded-lg border border-border bg-surface p-4 shadow-[var(--shadow-sm)]">
           {pendingSpec.needsDeadline && (
             <label className="grid gap-1.5">

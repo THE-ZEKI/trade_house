@@ -1,7 +1,6 @@
 import { asUser, callApp } from '@/lib/db';
 import { jsonError, jsonOk } from '@/lib/http';
 import { requireUser } from '@/lib/auth';
-import { AppError } from '@/lib/errors';
 
 export const dynamic = 'force-dynamic';
 

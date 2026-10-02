@@ -1,4 +1,4 @@
-import { asUser, query, queryOne, queryOneWith, queryWith } from '@/lib/db';
+import { asUser, queryOne, queryOneWith, queryWith } from '@/lib/db';
 import { jsonError, jsonOk } from '@/lib/http';
 import { requireUser } from '@/lib/auth';
 

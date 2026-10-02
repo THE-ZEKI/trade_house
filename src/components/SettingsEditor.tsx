@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, AlertCircle, Check, Save, X, RotateCcw } from 'lucide-react';
+import { Loader2, AlertCircle, Check, Save, RotateCcw } from 'lucide-react';
 
 /**
  * Modification des reglages (DESIGN_SYSTEM §6.10).

@@ -49,6 +49,14 @@ export type Action =
   | 'user.revoke_sessions'
   | 'user.update'
   | 'user.anonymize'
+  // Formation
+  | 'training.read'
+  | 'training.create_course'
+  | 'training.edit_course'
+  | 'training.add_exercise'
+  | 'training.assign'
+  | 'training.submit'
+  | 'training.review'
   // Administration
   | 'audit.read'
   | 'settings.read';
@@ -57,6 +65,10 @@ const TRADER: Action[] = [
   'report.create', 'report.submit', 'report.resubmit', 'report.declare_no_trade',
   'report.upload_file',
   'meeting.rsvp',
+  // Le trader LIT et REND, il n'ecrit pas le cours : la formation descend, elle
+  // ne remonte pas.
+  'training.read',
+  'training.submit',
 ];
 
 const MANAGER: Action[] = [
@@ -65,6 +77,8 @@ const MANAGER: Action[] = [
   'report.annotate', 'report.upload_file',
   'meeting.create', 'meeting.reschedule', 'meeting.cancel',
   'meeting.send_reminder', 'meeting.update_link',
+  'training.read', 'training.create_course', 'training.edit_course',
+  'training.add_exercise', 'training.assign', 'training.review',
 ];
 
 /**

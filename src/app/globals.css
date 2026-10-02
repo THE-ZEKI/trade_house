@@ -65,6 +65,19 @@
 
   /* Espacement (base 4px) */
   --s-1: 4px;
+--s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+
+  /* Typo */
+  /* Inter est injectee par next/font dans --font-inter ; le repli systeme
+     reste donc disponible si le chargement echoue. */
+  --font-sans: var(--font-inter, 'Inter'), 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
 
 @theme inline {
   --color-sky-50: var(--sky-50);
@@ -141,17 +154,6 @@ body {
   font-family: var(--font-mono);
 }
 
-/* Le point pulsant d'une reunion en cours. Anime, donc neutralise des que
-   l'utilisateur demande moins d'animations. */
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
-}
-
-.live-dot {
-  animation: pulse-dot 1.6s ease-in-out infinite;
-}
-
 /* La salle video est le SEUL ecran sombre (regle 0.8 et §9).
    Bleu nuit plutot que noir : coherent avec la marque. */
 .room-surface {
@@ -172,18 +174,4 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-}
-
-  --s-2: 8px;
-  --s-3: 12px;
-  --s-4: 16px;
-  --s-5: 24px;
-  --s-6: 32px;
-  --s-7: 48px;
-
-  /* Typo */
-  /* Inter est injectee par next/font dans --font-inter ; le repli systeme
-     reste donc disponible si le chargement echoue. */
-  --font-sans: var(--font-inter, 'Inter'), 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }

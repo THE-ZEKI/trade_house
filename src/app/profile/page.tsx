@@ -3,7 +3,7 @@ import { pageUser } from '@/lib/page';
 import { t } from '@/lib/i18n';
 import Shell from '@/components/Shell';
 import { Card, Empty, Badge, PageHeader } from '@/components/ui';
-import { ShieldCheck, ShieldOff, KeyRound, FileText } from 'lucide-react';
+import { ShieldCheck, ShieldOff, KeyRound} from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 

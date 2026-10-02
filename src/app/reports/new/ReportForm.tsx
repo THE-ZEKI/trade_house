@@ -6,7 +6,7 @@ import {
   Moon, Loader2, Check, TriangleAlert, ArrowRight, TrendingUp, TrendingDown, Minus,
 } from 'lucide-react';
 import type { SessionUser } from '@/lib/auth';
-import { EMOTION, RESULT_TYPE, spec, TONE_CLASS, type Tone } from '@/lib/status';
+import { EMOTION, spec, TONE_CLASS, type Tone } from '@/lib/status';
 import { t } from '@/lib/i18n';
 import { Card, PageHeader } from '@/components/ui';
 

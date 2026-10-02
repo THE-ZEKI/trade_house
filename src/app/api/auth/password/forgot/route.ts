@@ -4,8 +4,6 @@ import { appUrl, mayExposeToken, sendEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
-type Body = { email: string } | null;
-
 /**
  * POST /api/auth/password/forgot — A1
  *

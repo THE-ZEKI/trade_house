@@ -1,7 +1,7 @@
-import { asUser, callApp, queryWith, queryOneWith } from '@/lib/db';
+import { asUser, callApp, queryWith} from '@/lib/db';
 import { jsonError, jsonOk } from '@/lib/http';
 import { requireUser } from '@/lib/auth';
-import { meetingCreatedEmail, reminderEmail } from '@/lib/email-templates';
+import { meetingCreatedEmail} from '@/lib/email-templates';
 import { sendEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';

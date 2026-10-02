@@ -3,8 +3,8 @@ import { asUser, queryWith } from '@/lib/db';
 import { pageUser } from '@/lib/page';
 import { t } from '@/lib/i18n';
 import Shell from '@/components/Shell';
-import { Card, Empty, RsvpBadge, CodeBadge, PageHeader } from '@/components/ui';
-import { MEETING_STATUS, LINK_PROVIDER } from '@/lib/status';
+import { Card, Empty, CodeBadge, PageHeader } from '@/components/ui';
+import { MEETING_STATUS} from '@/lib/status';
 import RsvpButtons from '@/components/RsvpButtons';
 import { can } from '@/lib/permissions';
 import CreateMeeting from '@/components/CreateMeeting';
@@ -77,6 +77,11 @@ export default async function MeetingsPage() {
         <PageHeader
           title={t(user.locale, 'nav.meetings')}
           subtitle={upcoming.length > 0 ? `${upcoming.length} a venir` : undefined}
+          actions={
+            can(user, 'meeting.create')
+              ? <CreateMeeting traders={traders.map((r) => ({ id: String(r.id), full_name: String(r.full_name) }))} />
+              : undefined
+          }
         />
 
         <Card title="A venir">

@@ -139,6 +139,17 @@ const APP_FUNCTIONS = new Set([
   'app.update_settings',
   'app.update_user_account',
   'app.anonymize_user',
+  // formation (module G)
+  'app.create_training_course',
+  'app.update_training_course',
+  'app.add_training_exercise',
+  'app.assign_training',
+  'app.submit_training_exercise',
+  'app.review_training',
+  'app.complete_training',
+  'app.resubmit_training_exercise',
+  'app.unassign_training',
+  'app.attach_training_file',
   // reunions
   'app.create_meeting',
   'app.cancel_meeting',

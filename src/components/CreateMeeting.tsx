@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import {
   Loader2, AlertCircle, CalendarPlus, X, TriangleAlert, Check, UserRound,
 } from 'lucide-react';
-import { t } from '@/lib/i18n';
 
 /**
  * Planification d'une reunion (DESIGN_SYSTEM §6.6).

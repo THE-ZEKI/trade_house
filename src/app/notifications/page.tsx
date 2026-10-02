@@ -3,8 +3,8 @@ import { pageUser } from '@/lib/page';
 import { t } from '@/lib/i18n';
 import Shell from '@/components/Shell';
 import { Card, Empty, CodeBadge, PageHeader } from '@/components/ui';
-import { NOTIFY_STATUS, CHANNEL } from '@/lib/status';
-import { Dot, AlertTriangle } from 'lucide-react';
+import { NOTIFY_STATUS} from '@/lib/status';
+
 
 export const dynamic = 'force-dynamic';
 

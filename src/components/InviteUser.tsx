@@ -27,7 +27,8 @@ export default function InviteUser({ managers }: { managers: { id: string; full_
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sent, setSent] = useState<{ email: string; token: string | null } | null>(null);
+  const [sent, setSent] = useState<{ email: string; link: string | null } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
@@ -62,7 +63,13 @@ export default function InviteUser({ managers }: { managers: { id: string; full_
         setError(data?.error?.message ?? 'Invitation refusee');
         return;
       }
-      setSent({ email: data.user?.email ?? email.trim(), token: data.invitationToken ?? null });
+      // La reponse porte `previewLink` (et non `invitationToken`) : le nom
+      // precedent ne correspondait a rien et la variable valait toujours
+      // undefined. Consequence : le panneau affirmait « lien envoye par
+      // e-mail » alors qu'aucun e-mail n'etait parti — l'email etant en mode
+      // `log`. L'admin crea le compte et ne pouvait plus jamais le rendre
+      // utilisable, le nouveau trader ne pouvait pas définir son mot de passe.
+      setSent({ email: data.user?.email ?? email.trim(), link: data.previewLink ?? null });
       setEmail('');
       setFullName('');
       setManagerId('');
@@ -108,13 +115,43 @@ export default function InviteUser({ managers }: { managers: { id: string; full_
               <Check className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2.5} />
               <span>Invitation envoyee a {sent.email}.</span>
             </div>
-            {sent.token ? (
-              <label className="grid gap-1.5">
+            {sent.link ? (
+              <div className="grid gap-1.5">
                 <span className="text-[13px] font-medium text-text-muted">
-                  Lien (mode developpement)
+                  Lien d invitation — transmettez-le a la personne invitee
                 </span>
-                <textarea readOnly value={sent.token} className="mono min-h-[80px] w-full rounded-[10px] border border-border-strong bg-surface-alt px-3 py-2 text-xs break-all outline-none" />
-              </label>
+                <textarea readOnly value={sent.link} className="mono min-h-[72px] w-full rounded-[10px] border border-border-strong bg-surface-alt px-3 py-2 text-xs break-all outline-none" />
+<p className="text-xs text-text-faint">
+                  Aucun e-mail n est envoye en developpement : ce lien est le seul
+                  moyen pour la personne de definir son mot de passe.
+                </p>
+                <div className="flex gap-2">
+                  <a
+                    href={sent.link}
+                    className="inline-flex h-10 flex-1 items-center justify-center rounded-[10px] bg-sky-500 px-3 text-sm font-semibold text-white hover:bg-sky-600"
+                  >
+                    Ouvrir le lien
+                  </a>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(sent.link ?? '');
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      } catch {
+                        // Presse-papiers refuse hors contexte securise : le texte
+                        // reste selectionnable ci-dessus.
+                        setCopied(false);
+                      }
+                    }}
+                    className="inline-flex h-10 items-center justify-center gap-1.5 rounded-[10px] border border-border-strong px-3 text-sm font-semibold text-sky-700 hover:bg-sky-50"
+                  >
+                    {copied ? <Check className="h-4 w-4" strokeWidth={2.5} /> : null}
+                    {copied ? 'Copie' : 'Copier'}
+                  </button>
+                </div>
+              </div>
             ) : (
               <p className="text-xs text-text-faint">
                 Le lien a ete envoye par e-mail et n est pas affiche ici.

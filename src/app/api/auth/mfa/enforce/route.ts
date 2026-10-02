@@ -5,8 +5,6 @@ import { AppError } from '@/lib/errors';
 
 export const dynamic = 'force-dynamic';
 
-type Body = { userId: string; enabled: boolean } | null;
-
 /**
  * POST /api/auth/mfa/enforce — RG-06 : reserve a l'administrateur.
  * Rend la 2FA obligatoire (ou non) pour un compte. Journalise (RG-63).

@@ -80,7 +80,7 @@ export async function POST(request: Request, { params }: Params) {
         sql,
         `insert into public.report_files
            (report_id, kind, storage_path, original_name, mime_type, size_bytes, uploaded_by)
-         values ($1::uuid, $2::file_kind, $3, $4, $5, $6::bigint, $7::uuid)
+         values ($1::uuid, $2::report_file_kind, $3, $4, $5, $6::bigint, $7::uuid)
          returning id, kind, original_name, mime_type, size_bytes, created_at`,
         [id, ALLOWED_MIME[realMime].category, stored, file.name || 'fichier', realMime, content.length, user.userId],
       ),

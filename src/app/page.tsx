@@ -4,7 +4,7 @@ import { currentUser } from '@/lib/auth';
 import { getDashboard } from '@/lib/dashboard';
 import { t } from '@/lib/i18n';
 import Shell from '@/components/Shell';
-import { Card, Empty, Stat, StatusBadge, ReportFlags, RsvpBadge, PageHeader } from '@/components/ui';
+import { Card, Empty, Stat, StatusBadge, ReportFlags, RsvpBadge} from '@/components/ui';
 import { ClipboardCheck, MessageSquareWarning, ClockAlert, UserX, FileText } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';

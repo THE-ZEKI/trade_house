@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import {
-  LayoutDashboard, FileText, CalendarDays, Users, ScrollText, Settings,
-  Bell, UserCircle, LogOut, Menu, X, ShieldCheck,
+  LayoutDashboard,  FileText,  CalendarDays,  Users,  ScrollText,  Settings, 
+  Bell,  UserCircle,  Menu,  X,  ShieldCheck,  GraduationCap, 
 } from 'lucide-react';
 import type { SessionUser } from '@/lib/auth';
 import { t } from '@/lib/i18n';
@@ -35,6 +35,10 @@ const NAV: NavItem[] = [
   { href: '/', labelKey: 'nav.dashboard', roles: ['admin', 'manager', 'trader'], Icon: LayoutDashboard, tab: true },
   { href: '/reports', labelKey: 'nav.reports', roles: ['admin', 'manager', 'trader'], Icon: FileText, tab: true },
   { href: '/meetings', labelKey: 'nav.meetings', roles: ['admin', 'manager', 'trader'], Icon: CalendarDays, tab: true },
+  // Formation : visible par tous, mais le contenu differe entierement selon le
+  // role (cours a ecrire et a attribuer / cours a suivre). Le masquer au trader
+  // le priverait de sa propre page de travail.
+  { href: '/training', labelKey: 'nav.training', roles: ['admin', 'manager', 'trader'], Icon: GraduationCap },
   { href: '/users', labelKey: 'nav.users', roles: ['admin'], Icon: Users },
   { href: '/audit', labelKey: 'nav.audit', roles: ['admin'], Icon: ScrollText },
   { href: '/settings', labelKey: 'nav.settings', roles: ['admin'], Icon: Settings },
