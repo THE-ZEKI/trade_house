@@ -12,6 +12,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "lint:imports": "node scripts/strip-unused-imports.mjs",
+    "check:all": "npm run typecheck && npm run check:calls && npm run check:actions && npm run check:perms && npm run check:pages",
     "db:install": "powershell -ExecutionPolicy Bypass -File db/setup.ps1 -Password $env:PGPASSWORD",
     "db:test": "powershell -ExecutionPolicy Bypass -File db/test.ps1 -Password $env:PGPASSWORD",
     "db:migrate": "powershell -ExecutionPolicy Bypass -File db/migrate.ps1 -Password $env:PGPASSWORD",
@@ -24,7 +26,10 @@
     "verify:room": "tsc src/lib/room-token.ts --outDir .tmp-room --module commonjs --target es2022 --moduleResolution node --skipLibCheck --esModuleInterop && node --env-file=.env.local scripts/verify-room.mjs",
     "check:pages": "powershell -ExecutionPolicy Bypass -File scripts/check-pages.ps1",
     "check:perms": "powershell -ExecutionPolicy Bypass -File scripts/check-permissions.ps1",
-    "check:calls": "powershell -ExecutionPolicy Bypass -File scripts/check-app-calls.ps1"
+    "check:calls": "powershell -ExecutionPolicy Bypass -File scripts/check-app-calls.ps1",
+    "check:actions": "powershell -ExecutionPolicy Bypass -File scripts/check-actions.ps1",
+    "check:files": "powershell -ExecutionPolicy Bypass -File scripts/check-files.ps1",
+    "db:apply": "node --env-file=.env.local scripts/apply-migration.mjs"
   },
   "dependencies": {
     "@daily-co/daily-js": "^0.92.2",

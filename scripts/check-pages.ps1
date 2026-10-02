@@ -76,6 +76,33 @@ function Test-Page($s, [string]$path) {
   "{0,-8} {1,-3} {2}" -f $flag, $code, $path
 }
 
+function Get-Html($s, [string]$path) {
+  try {
+    return (Invoke-WebRequest -Uri "$Base$path" -WebSession $s -UseBasicParsing -TimeoutSec 25).Content
+  } catch {
+    return ''
+  }
+}
+
+# Verifie qu un libelle est PRESENT ou ABSENT dans le HTML rendu.
+#
+# Pourquoi : un composant peut etre importe, compile, et simplement ne jamais etre
+# rendu. C est exactement ce qui est arrive sur /users (InviteUser) et /meetings
+# (CreateMeeting) : les imports etaient la, l attribut `actions` du PageHeader
+# manquait, aucun outil ne l avait signale, et les deux boutons etaient invisibles.
+# Un test HTTP qui ne verifie que le code 200 laisse passer ce defaut ; il faut
+# donc controler la presence reelle du bouton dans la page servie.
+function Test-Contient($s, [string]$path, [string]$libelle, [bool]$attendu) {
+  $html = Get-Html $s $path
+  if ($html -eq '') { return "{0,-8} {1,-3} {2}" -f 'ALERTE', '-', "$path (page illisible)" }
+  $trouve = $html -like "*$libelle*"
+  if ($trouve -eq $attendu) {
+    return "{0,-8} {1,-3} {2}" -f 'ok', 200, "$path contient '$libelle'"
+  }
+  $sens = if ($attendu) { 'devrait contenir' } else { 'ne devrait PAS contenir' }
+  return "{0,-8} {1,-3} {2}" -f 'ECHEC', 200, "$path $sens '$libelle'"
+}
+
 $reportId  = $env:TH_REPORT_ID
 $meetingId = $env:TH_MEETING_ID
 $traderId  = $env:TH_TRADER_ID
@@ -153,4 +180,18 @@ foreach ($a in $ACCOUNTS) {
   }
 
   foreach ($p in $paths) { Test-Page $s $p }
+
+  Write-Host ''
+  Write-Host '  -- actions reellement rendues --'
+  # RG-06 : "Inviter" est reserve a l administration. RG-30 : la planification
+  # revient a l encadrement. Le reste du monde ne doit pas les voir.
+  $peutInviter  = ($a.role -eq 'admin')
+  $peutPlanifier = ($a.role -in @('admin', 'manager'))
+
+  # On controle le libelle du BOUTON declencheur, pas celui de la modale :
+  # "Inviter un compte" n apparait qu une fois la fenetre ouverte, et
+  # chercher cette chaine ferait echouer le test sur une page parfaitement
+  # correcte. "Invoker" est le texte du bouton lui-meme.
+  if ($a.role -eq 'admin') { Test-Contient $s '/users' '>Inviter<' $true }
+  Test-Contient $s '/meetings' 'Planifier une reunion' $peutPlanifier
 }

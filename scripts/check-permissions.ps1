@@ -109,10 +109,14 @@ $reportId = if ($reports.Count)  { [string]$reports[0].id }  else { $null }
 # le jeu de donnees n en contient aucun.
 $reviewId = ($reports | Where-Object { $_.status -eq 'in_review' } | Select-Object -First 1)
 if (-not $reviewId) {
-  $submitted = $reports | Where-Object { $_.status -eq 'submitted' } | Select-Object -First 1
-  $reviewId = if ($submitted) { [string]$submitted.id } else { $null }
+  $reviewId = ($reports | Where-Object { $_.status -eq 'submitted' } | Select-Object -First 1)
 }
-if ($reviewId) { $reviewId = [string]$reviewId }
+# On prend l IDENTIFIANT, pas l objet. Un PSCustomShell converti en chaine
+# donne « @{id=…; session_date=…} » : la variable contenant l objet entraine
+# donc des URL comme /reports/@{id=…}, qui repondent 404, et les actions de
+# revue sont declarees absentes — un echec du test qui n est pas celui de
+# l application. C etait exactement ce que le script signalait.
+$reviewId = if ($reviewId) { [string]$reviewId.id } else { $null }
 
 if (-not $reviewId) {
   Write-Host 'Aucun rapport en revue : les actions de revue ne seront pas verifiees.' -ForegroundColor Yellow
