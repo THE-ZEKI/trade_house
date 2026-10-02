@@ -30,9 +30,13 @@ export default async function MeetingDetail({ params }: Params) {
   const { meeting, participants, attendance } = await asUser(user.userId, async (sql) => ({
     meeting: await queryOneWith<Record<string, unknown>>(
       sql,
-      `select m.*, u.full_name as creator_name
+      // 029 : le createur est lu par une fonction SECURITY DEFINER, pas par un
+      // JOIN sur public.users. La politique users_select de 008 rend un manager
+      // invisible a un participant, donc le LEFT JOIN ramenait NULL et la page
+      // affichait « - » pour le trader — alors meme que la reunion, elle,
+      // s'affichait normalement.
+      `select m.*, app.fn_meeting_creator_name(m.id) as creator_name
          from public.meetings m
-         left join public.users u on u.id = m.created_by
         where m.id = $1::uuid`,
       [id],
     ),
