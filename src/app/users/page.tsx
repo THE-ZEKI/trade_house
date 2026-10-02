@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { asUser, queryWith } from '@/lib/db';
 import { pageUserAs } from '@/lib/page';
+import { can } from '@/lib/permissions';
 import { t } from '@/lib/i18n';
 import Shell from '@/components/Shell';
 import { Card, Empty, Badge, PageHeader } from '@/components/ui';
@@ -13,17 +14,23 @@ export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Comptes — Trade House' };
 
 /**
- * Comptes utilisateurs — administrateur uniquement (RG-06).
+ * Comptes utilisateurs.
  *
- * `pageUserAs(['admin'])` renvoie un manager vers l'accueil. Ce n'est qu'un
- * confort : meme en forçant l'URL, le RLS ne renverrait aucune ligne.
+ * 027 : le MANAGER accede a cette page, mais pour une seule chose — inviter un
+ * trader qui rejoindra son equipe. Le RLS fait le reste : il ne voit que SES
+ * traders, jamais un autre manager, jamais un administrateur. La page n'a donc
+ * rien a filtrer elle-meme, et les commandes d'administration restent absentes
+ * de son menu (UserActions teste 'user.deactivate', que le manager n'a pas).
+ *
+ * Le role du lecteur decide de ce qu'il peut faire ici ; la base decide de ce
+ * qu'il peut voir. Aucune des deux ne repose sur l'autre.
  */
 export default async function UsersPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string; role?: string }>;
 }) {
-  const user = await pageUserAs(['admin']);
+  const user = await pageUserAs(['admin', 'manager']);
   const { q, role } = await searchParams;
   const users = await asUser(user.userId, (sql) =>
     queryWith(
@@ -62,7 +69,13 @@ export default async function UsersPage({
         <PageHeader
           title={t(user.locale, 'nav.users')}
           subtitle={`${users.length} comptes · ${active} actifs`}
-          actions={<InviteUser managers={managers} />}
+          actions={can(user, 'trader.invite') ? (
+            <InviteUser
+              managers={managers}
+              isAdmin={user.role === 'admin'}
+              managerName={user.fullName}
+            />
+          ) : undefined}
         />
 
         <UserSearch q={q ?? ''} role={role ?? ''} />

@@ -7,7 +7,18 @@ import { Loader2, AlertCircle, UserPlus, X, Check } from 'lucide-react';
 /**
  * Invitation d'un compte (DESIGN_SYSTEM §6.8).
  *
- * `app.create_user` cree le compte puis `app.issue_invitation` produit un jeton.
+ * Deux usages selon le role de celui qui invite :
+ *
+ *   - l'ADMIN choisit le role et le manager de tutelle ;
+ *   - le MANAGER n'invite qu'un TRADER, qui tombe automatiquement sous sa
+ *     couverture. Le formulaire lui masque donc les deux selecteurs : afficher
+ *     un choix que la base refuserait de toute facon serait un mensonge
+ *     de l'interface, et le message d'erreur arriverait apres coup.
+ *
+ * Le rattachement n'est PAS demande au manager : app.invite_trader impose
+ * manager_id = l'appelant. Le serveur reste la source de verite, l'ecran ne
+ * fait qu'eviter une demande qui echouerait.
+ *
  * Le lien n'est renvoye QUE si l'e-mail est en mode `log` : en production il
  * part par l'adaptateur d'envoi et n'apparait jamais a l'ecran. L'interface ne
  * fait que relayer la reponse.
@@ -22,7 +33,16 @@ const ROLES = [
 const INPUT =
   'h-11 w-full rounded-[10px] border border-border-strong bg-white px-3 text-sm outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100';
 
-export default function InviteUser({ managers }: { managers: { id: string; full_name: string }[] }) {
+export default function InviteUser({
+  managers,
+  isAdmin,
+  managerName,
+}: {
+  managers: { id: string; full_name: string }[];
+  isAdmin: boolean;
+  /** Nom du manager connecte, affiche pour rendre la couverture explicite. */
+  managerName?: string;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -32,6 +52,7 @@ export default function InviteUser({ managers }: { managers: { id: string; full_
 
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
+  // Un manager n'a pas le choix : c'est le role trader, et lui seul.
   const [role, setRole] = useState('trader');
   const [managerId, setManagerId] = useState('');
   const [mfaEnforced, setMfaEnforced] = useState(false);
@@ -190,29 +211,43 @@ export default function InviteUser({ managers }: { managers: { id: string; full_
               <input value={fullName} onChange={(e) => setFullName(e.target.value)} className={INPUT} />
             </label>
 
-            <fieldset className="grid gap-2">
-              <legend className="text-[13px] font-medium text-text-muted">Role</legend>
-              <div className="grid grid-cols-3 gap-2">
-                {ROLES.map((r) => (
-                  <button
-                    key={r.value}
-                    type="button"
-                    onClick={() => setRole(r.value)}
-                    aria-pressed={role === r.value}
-                    className={
-                      'inline-flex h-11 items-center justify-center rounded-[10px] border text-sm font-semibold transition-colors '
-                      + (role === r.value
-                        ? 'border-transparent bg-sky-500 text-white'
-                        : 'border-border-strong bg-white text-text-muted hover:bg-surface-alt')
-                    }
-                  >
-                    {r.label}
-                  </button>
-                ))}
+            {isAdmin ? (
+              <fieldset className="grid gap-2">
+                <legend className="text-[13px] font-medium text-text-muted">Role</legend>
+                <div className="grid grid-cols-3 gap-2">
+                  {ROLES.map((r) => (
+                    <button
+                      key={r.value}
+                      type="button"
+                      onClick={() => setRole(r.value)}
+                      aria-pressed={role === r.value}
+                      className={
+                        'inline-flex h-11 items-center justify-center rounded-[10px] border text-sm font-semibold transition-colors '
+                        + (role === r.value
+                          ? 'border-transparent bg-sky-500 text-white'
+                          : 'border-border-strong bg-white text-text-muted hover:bg-surface-alt')
+                      }
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            ) : (
+              // Rappel du role et de la couverture : le manager ne choisit rien,
+              // autant que l'ecran le dise plutot que de le laisser deviner.
+              <div className="rounded-[10px] border border-border bg-surface-alt px-3 py-2.5 text-sm">
+                <p className="font-medium text-text">
+                  Trader{managerName ? ` rattache a ${managerName}` : ''}
+                </p>
+                <p className="mt-0.5 text-xs text-text-muted">
+                  Le nouveau compte travaille sous votre supervision. Role et
+                  rattachement sont imposes.
+                </p>
               </div>
-            </fieldset>
+            )}
 
-            {role === 'trader' && managers.length > 0 && (
+            {isAdmin && role === 'trader' && managers.length > 0 && (
               <label className="grid gap-1.5">
                 <span className="text-[13px] font-medium text-text-muted">Manager</span>
                 <select value={managerId} onChange={(e) => setManagerId(e.target.value)} className={INPUT}>

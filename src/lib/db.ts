@@ -132,6 +132,9 @@ const APP_FUNCTIONS = new Set([
   'app.reactivate_user',
   'app.create_user',
   'app.issue_invitation',
+  // 027 : le manager invite un trader qui tombe sous sa couverture. La
+  // fonction impose le role et le manager ; cette liste n'autorise que l'appel.
+  'app.invite_trader',
   'app.accept_invitation',
   'app.revoke_all_sessions',
   // 018 : administration des comptes. La fonction elle-meme exige un
@@ -150,6 +153,10 @@ const APP_FUNCTIONS = new Set([
   'app.resubmit_training_exercise',
   'app.unassign_training',
   'app.attach_training_file',
+  // 026 : supports du cours (images, PDF). La fonction refuse un cours qui
+  // n'est pas de l'auteur ; cette liste n'autorise que l'appel.
+  'app.attach_course_file',
+  'app.remove_course_file',
   // reunions
   'app.create_meeting',
   'app.cancel_meeting',

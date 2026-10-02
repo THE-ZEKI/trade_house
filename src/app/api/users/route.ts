@@ -3,6 +3,7 @@ import { jsonError, jsonOk } from '@/lib/http';
 import { requireUser } from '@/lib/auth';
 import { sendEmail, appUrl } from '@/lib/email';
 import { invitationEmail } from '@/lib/email-templates';
+import { can } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -103,7 +104,17 @@ function parseCreate(raw: unknown) {
 }
 
 /**
- * POST /api/users — creation de compte et invitation (A2, RG-02, RG-05)
+ * POST /api/users — creation de compte et invitation (A2, RG-02, RG-05, RG-06)
+ *
+ * Deux chemins, et la difference est le coeur de la feature :
+ *
+ *   - l'ADMIN passe par app.create_user et choisit librement le role et le
+ *     manager de tutelle ;
+ *   - le MANAGER passe par app.invite_trader, qui n'accepte que le role
+ *     'trader' et impose le manager courant. La couverture n'est donc pas
+ *     demandee par le client : elle resulte de la fonction. Un manager qui
+ *     tenterait de s'attribuer un autre tuteur, ou de creer un admin, se
+ *     verrait refuser par la base.
  *
  * Le jeton ne quitte JAMAIS la reponse en production : seul le fournisseur
  * « log » le renvoie, pour permettre les tests en developpement.
@@ -116,21 +127,44 @@ export async function POST(request: Request) {
 
   try {
     const user = await requireUser();
-    if (user.role !== 'admin') {
+
+    // Le trader ne fait rien de tout cela, quel que soit le corps envoye.
+    if (!can(user, 'trader.invite')) {
       return jsonOk(
-        { error: { code: 'FORBIDDEN', message: 'Seul un administrateur cree un compte', rule: 'RG-02' } },
+        { error: { code: 'FORBIDDEN', message: 'Vous ne pouvez pas creer de compte', rule: 'RG-02' } },
+        403,
+      );
+    }
+
+    const isAdmin = user.role === 'admin';
+
+    // Un manager n'a qu'un droit : creer un trader. Le role est impose par la
+    // fonction ; on le verifie ici aussi pour ne pas depenser un appel base
+    // quand la demande est deja hors sujet.
+    if (!isAdmin && body.role !== 'trader') {
+      return jsonOk(
+        { error: { code: 'FORBIDDEN', message: 'Un manager invite uniquement un trader', rule: 'RG-06' } },
         403,
       );
     }
 
     const created = await asUser(user.userId, async (sql) => {
-      const row = await sql.query(
-        `select (app.create_user($1::citext,$2::varchar,$3::user_role,$4::uuid,$5::varchar,
-                                  $6::varchar,$7::varchar,$8::boolean)).id`,
-        [body.email, body.fullName, body.role, body.managerId, body.phone,
-          body.timezone, body.locale, body.mfaEnforced],
-      );
-      const id: string = row.rows[0].id;
+      const id: string = isAdmin
+        ? (
+            await sql.query(
+              `select (app.create_user($1::citext,$2::varchar,$3::user_role,$4::uuid,$5::varchar,
+                                        $6::varchar,$7::varchar,$8::boolean)).id`,
+              [body.email, body.fullName, body.role, body.managerId, body.phone,
+                body.timezone, body.locale, body.mfaEnforced],
+            )
+          ).rows[0].id
+        : (
+            await sql.query(
+              `select (app.invite_trader($1::citext,$2::varchar,$3::varchar,$4::varchar,$5::boolean)).id`,
+              [body.email, body.fullName, body.timezone, body.locale, body.mfaEnforced],
+            )
+          ).rows[0].id;
+
       // RG-05 : lien valable 7 jours ; un renvoi invalide le precedent
       const token = await callApp<string>(sql, 'issue_invitation', [id, 'invite']);
       return { id, token };

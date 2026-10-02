@@ -42,6 +42,7 @@ export type Action =
   | 'meeting.update_link'
   // Comptes — administration
   | 'user.invite'
+  | 'trader.invite'
   | 'user.deactivate'
   | 'user.reactivate'
   | 'user.enforce_mfa'
@@ -79,6 +80,12 @@ const MANAGER: Action[] = [
   'meeting.send_reminder', 'meeting.update_link',
   'training.read', 'training.create_course', 'training.edit_course',
   'training.add_exercise', 'training.assign', 'training.review',
+  // 027 : le manager invite un trader, qui tombe sous sa couverture. Cette
+  // action est STRICTEMENT differente de 'user.invite' (administration) : elle
+  // ne cree qu'un role, le sien, et ne touche a aucun autre compte. Les deux
+  // restent separees pour que le menu n'expose jamais au manager un bouton
+  // qui reinitialiserait le mot de passe d'un tiers.
+  'trader.invite',
 ];
 
 /**
