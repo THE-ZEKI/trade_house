@@ -145,6 +145,11 @@ const APP_FUNCTIONS = new Set([
   'app.notify_ids',
   'app.fn_meeting_participant_ids',
   'app.notify_meeting_created',
+  // 031 : seconde file d envoi, pour les notifications metier par email.
+  'app.fn_is_email_event',
+  'app.create_email_copies',
+  'app.claim_pending_emails',
+  'app.fn_notification_context',
   'app.accept_invitation',
   'app.revoke_all_sessions',
   // 018 : administration des comptes. La fonction elle-meme exige un

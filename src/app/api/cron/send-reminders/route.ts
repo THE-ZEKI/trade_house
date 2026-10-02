@@ -1,7 +1,8 @@
 import { asUser, callApp, callAppSet } from '@/lib/db';
 import { jsonOk } from '@/lib/http';
-import { sendEmail } from '@/lib/email';
+import { sendEmail, appUrl } from '@/lib/email';
 import { reminderEmail } from '@/lib/email-templates';
+import { notificationEmail } from '@/lib/email-notifications';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,6 +67,10 @@ async function run(request: Request) {
     sent: 0,
     failed: 0,
     retried: 0,
+    // File des notifications metier (migration 031) : `copied` = notifications
+    // in-app dupliquees en email, `claimed_email` = lignes reservees au job.
+    copied: 0,
+    claimed_email: 0,
   };
 
   for (const reminder of claimed) {
@@ -122,6 +127,73 @@ async function run(request: Request) {
     }
 
     await asUser(null, (sql) => callApp(sql, 'app.complete_reminder', [reminder.id]));
+  }
+
+  // --- 2. Notifications metier par email ----------------------------------
+  //
+  // File distincte de celle des rappels (migration 031) : un evenement comme
+  // « ton exercice est corrige » part immediatement et une fois, sans occurrence
+  // ni relance a 10 minutes. Les deux files ne peuvent pas partager un seul
+  // mecanisme sans un cas particulier a chaque etape.
+  const copied = await asUser(null, (sql) => callApp<number>(sql, 'app.create_email_copies', [200]));
+  report.copied += copied ?? 0;
+
+  const due = await asUser(null, (sql) =>
+    callAppSet<{
+      notification_id: string;
+      email: string;
+      locale: string | null;
+      event: string;
+      related_type: string | null;
+      related_id: string | null;
+      payload: Record<string, unknown>;
+      attempts: number;
+    }>(sql, 'app.claim_pending_emails', [200]),
+  );
+  report.claimed_email += due.length;
+
+  for (const target of due) {
+    try {
+      // Le contexte est resolu en base : le RLS de public.users cache le
+      // manager a son propre trader, le job n'a donc pas le droit de refaire
+      // la jointure lui-meme.
+      const ctx = await asUser(null, (sql) =>
+        callApp<Record<string, unknown>>(sql, 'app.fn_notification_context', [
+          target.related_type,
+          target.related_id,
+        ]),
+      );
+
+      const result = await sendEmail(
+        notificationEmail({
+          email: target.email,
+          event: target.event,
+          context: ctx ?? {},
+          link: `${appUrl()}/notifications`,
+          locale: target.locale,
+        }),
+      );
+
+      await asUser(null, (sql) =>
+        callApp(sql, 'app.mark_notification_sent', [
+          target.notification_id,
+          result.delivered ? null : { provider: result.provider, simulated: true },
+        ]),
+      );
+      report.sent += 1;
+    } catch (error) {
+      // mark_notification_failed replanifie la relance (RG-16) et s arrete au
+      // bout de 3 echecs en passant le statut a 'failed' : c'est lui, pas le
+      // job, qui compte les tentatives.
+      const state = await asUser(null, (sql) =>
+        callApp<string>(sql, 'app.mark_notification_failed', [
+          target.notification_id,
+          error instanceof Error ? error.message.slice(0, 500) : 'erreur inconnue',
+        ]),
+      );
+      if (state === 'pending') report.retried += 1;
+      else report.failed += 1;
+    }
   }
 
   return jsonOk({ status: 'ok', ...report });
