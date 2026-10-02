@@ -44,7 +44,7 @@ language sql immutable as $$
     'correction_requested', 'report_validated', 'report_dismissed',
     'training_assigned', 'training_exercise_reviewed',
     'training_exercise_submitted',
-    'account_invited', 'account_disabled',
+    'account_invited', 'account_disabled', 'account_reactivated',
     'meeting_created', 'meeting_updated', 'meeting_cancelled'
   );
 $$;

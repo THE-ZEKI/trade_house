@@ -145,6 +145,8 @@ const APP_FUNCTIONS = new Set([
   'app.notify_ids',
   'app.fn_meeting_participant_ids',
   'app.notify_meeting_created',
+  // 032 : echo in-app d une invitation (l email d accueil part ailleurs).
+  'app.notify_account_invited',
   // 031 : seconde file d envoi, pour les notifications metier par email.
   'app.fn_is_email_event',
   'app.create_email_copies',

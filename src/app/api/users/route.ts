@@ -167,6 +167,10 @@ export async function POST(request: Request) {
 
       // RG-05 : lien valable 7 jours ; un renvoi invalide le precedent
       const token = await callApp<string>(sql, 'issue_invitation', [id, 'invite']);
+      // 032 : l'echo in-app de l'invitation. L'email d'accueil part par un
+      // autre chemin (sendEmail plus bas, et uniquement en mode `log`) ; ceci
+      // est la trace en base, lisible des que le compte existe.
+      await callApp(sql, 'notify_account_invited', [id]);
       return { id, token };
     });
 
