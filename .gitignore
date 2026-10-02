@@ -35,3 +35,9 @@ __pycache__/
 .tmp-storage/
 .tmp-pdf/
 .tmp-room/
+
+# Sorties des scripts de verification (logs, stderr)
+.tmp-*.log
+.tmp-*.err
+.tmp-*.out
+

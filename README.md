@@ -81,10 +81,29 @@ Les routes ne font que valider l'entree et traduire la reponse.
 | Fiche trader | `GET /api/traders/:id` | F2 |
 | Audit | `GET /api/audit` | F5 (admin seul) |
 | Reglages | `GET/PATCH /api/settings` | RG-06 (admin seul) |
+| Annotations | `GET/POST/DELETE /api/reports/files/:fileId/annotations[/:id]` | RG-46 |
+| Formation | `/api/training/*` (cours, exercices, attributions, soumissions, PDF) | module G |
 | Cron | `POST /api/cron/send-reminders` | RG-52 |
 
-**Restant a faire** : le composant de salle (module C, C1 a C8). Le back-end est
-pret et **independant du fournisseur** : voir ci-dessous.
+**Back-end et interface sont complets** (phases 1 a 4). Reste le deploiement :
+brancher un fournisseur de visio reel, le stockage `s3`/`supabase` et un webhook
+de bounces si le courriel part en SMTP.
+
+### Module G — la formation
+
+Le manager ecrit un **cours** (un modele, pas un parcours individuel), y attache des
+**exercices**, puis l'attribue a un ou plusieurs de ses traders.
+
+| Choix | Conséquence en base |
+|---|---|
+| le cours est un modele, l'affectation porte la progression | une re-soumission cree une ligne de plus : `training_submissions` est un historique, pas un etat |
+| l'affectation n'est pas figee a l'attribution | le trader voit la version en cours du contenu ; l'archivage complet est un module a part |
+| la correction est libre, l'auto-note est un controle | `written` (corrige par le manager) et `qcm` (note automatique) sont deux exercices distincts |
+
+`023_training_submission_conflict.sql` et `025_cascade_transition.sql` referment les deux
+trous trouves apres coup : la premiere remplace un `insert` par un verrou sur l'affectation
+(passage concurrent de `assigned` a `submitted`), la seconde fait cascader les transitions
+de rapport en base plutot que dans les routes.
 
 ### Module C — visio, independant du fournisseur
 
@@ -174,7 +193,7 @@ Le test se termine par un `ROLLBACK` : la base n'est jamais modifiee.
 
 
 ```sql
-\dt public.*                       -- 19 tables + 6 vues
+\dt public.*                       -- 26 tables + 6 vues
 select * from app.settings();      -- parametres (RG-36/47/48/23/20/16...)
 select email, role from public.users order by role;
 ```
@@ -230,8 +249,15 @@ db/
     007_views.sql         indicateurs calcules et files de travail
     008_rls.sql           politiques d'acces par role
     009_seed.sql          parametres + comptes de developpement
+    010..019              auth, MFA, securite, rappels, recurrence, bootstrap,
+                          garde-fous comptes, video, reglages editables
+    020_annotations.sql   annotations d'images (RG-46)
+    021..025_training     module G : cours, exercices, attributions, corrections
 docs/
   DECISIONS.md          registre de decisions (D1 a D6) et points ouverts
+  PLAN_BACKEND.md       plan de developpement en 4 phases
+  DESIGN_BRIEF.md       intentions visuelles
+  DESIGN_SYSTEM.md      jetons, composants, seuils
 ```
 
 ## Tables
@@ -256,6 +282,12 @@ docs/
 | `report_corrections` | correctifs cibles, obligatoires ou suggestions (E1..E3) |
 | `file_annotations` | annotations d'images, stockees a part (RG-46) |
 | `notifications_log` | envoi par destinataire + notifications in-app (B9, RG-52) |
+| `training_courses` | cours (modele) et leur contenu, `draft` / `published` / `archived` |
+| `training_exercises` | exercices du cours, `written` (corrige a la main) ou `qcm` (note auto) |
+| `training_assignments` | attribution d'un cours a un trader, porte la progression |
+| `training_submissions` | reponses rendues, une par tentative (l'historique n'est pas ecrase) |
+| `training_reviews` | correction du manager sur une soumission |
+| `training_exercise_files` | pieces jointes des exercices |
 
 ## Vues
 
@@ -278,6 +310,8 @@ docs/
 | Salle / presence | `attendance_join`, `attendance_leave`, `materialize_attendance`, `close_meeting` |
 | Rapports | `submit_report`, `resubmit_report`, `declare_no_trade`, `cancel_no_trade` |
 | Correction | `start_review`, `add_correction`, `request_corrections`, `respond_correction`, `arbitrate_correction`, `validate_report`, `dismiss_report`, `reopen_report` |
+| Annotations | lecture/ecriture via RLS ; `app.fn_annotation_report_trader` resout le dossier pour la cloisonnement |
+| Formation | `create_training_course`, `update_training_course`, `add_training_exercise`, `assign_training`, `unassign_training`, `submit_training_exercise`, `resubmit_training_exercise`, `attach_training_file`, `review_training`, `complete_training` |
 
 ## Taches planifiees (cron)
 

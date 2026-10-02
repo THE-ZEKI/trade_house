@@ -2,6 +2,12 @@
 
 Cahier des charges v1.2 (30/09/2026) · Base `trade_house` en place et validée (67 assertions)
 
+> **État au 30/09/2026** : les 4 phases sont terminées, côté back-end **et** interface.
+> Deux modules sont venus après ce plan et n'y figurent pas : les **annotations
+> d'images** (RG-46, migration 020) et le module **Formation** (migrations 021 à 025).
+> Ce document reste le reference de la structure d'origine ; voir `README.md` pour
+> l'état courant.
+
 ## Principe directeur
 
 La base porte les règles (contraintes, déclencheurs, fonctions `app.*`). Le back-end ne
