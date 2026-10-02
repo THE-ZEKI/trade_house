@@ -62,20 +62,21 @@ begin
   -- pourrait passer p_manager_id rattacherait le nouveau trader a quelqu'un
   -- d'autre : c'est a dire en dehors de sa portee, alors qu'il vient de le
   -- creer. La regle tient donc sans faire confiance a l'appelant.
-  v_user := case
-    when app.current_user_role() = 'manager' then
-      (insert into public.users
-         (email, password_hash, full_name, role, manager_id, timezone,
-          preferred_locale, mfa_enforced)
-       values (p_email, '!' || encode(gen_random_bytes(32), 'hex'), p_full_name,
-               'trader', v_me, p_timezone, p_locale, p_mfa_enforced)
-       returning *)
-    else
-      -- L'admin, lui, choisit le manager de tutelle.
-      null
-  end;
-
-  if v_user.id is null then
+  --
+  -- Un INSERT n'etant pas une expression en SQL, il ne peut pas figurer dans
+  -- un CASE : la premiere version ecritait `case when ... then (insert ...)
+  -- returning *) else null end`, que PostgreSQL rejette avec « erreur de
+  -- syntaxe sur ou pres de into ». Le role est donc tranche par un IF, et
+  -- l'admin est refuse en amont — il a create_user, qui permet de choisir le
+  -- manager de tutelle.
+  if app.current_user_role() = 'manager' then
+    insert into public.users
+      (email, password_hash, full_name, role, manager_id, timezone,
+       preferred_locale, mfa_enforced)
+    values (p_email, '!' || encode(gen_random_bytes(32), 'hex'), p_full_name,
+            'trader', v_me, p_timezone, p_locale, p_mfa_enforced)
+    returning * into v_user;
+  else
     raise exception 'RG-02 : un administrateur doit passer par app.create_user';
   end if;
 
