@@ -162,6 +162,11 @@ def main() -> int:
         table, block = m.group(1), m.group(2)
         # les expressions CASE ne sont pas des affectations de colonnes
         block = re.sub(r"case\b[\s\S]*?\bend\b", " ", block, flags=re.I)
+        # Les affectations construites par format() utilisent des placeholders
+        # (%I pour un identifiant, %s pour un type) : le nom de colonne n'est pas
+        # ecrit en clair, le controle ne peut pas le verifier.
+        if re.search(r"%\s?[IsL]", block):
+            continue
         for col in re.findall(r"(\w+)\s*=(?!=)", block):
             if col.lower() in ("case", "select", "and", "or", "not", "when", "then", "else"):
                 continue

@@ -1,6 +1,6 @@
 -- Rapport en revue, pour la verification des permissions de l'interface.
 --
--- Pourquoi : « demander des correctifs », « valider » et « ajouter un correctif »
+-- Pourquoi : " demander des correctifs ", " valider " et " ajouter un correctif "
 -- ne sont proposes qu'a partir d'un certain statut. Sans ce jeu de donnees, le
 -- test des droits ne controlerait que des boutons absents pour de mauvaises
 -- raisons.
@@ -17,7 +17,7 @@ begin;
 
 -- 0. le trader est rattache a son manager -------------------------------------
 -- Indispensable : app.can_manage_trader() exige ce lien pour autoriser une
--- revue. Sans lui, RG-41 refuse le passage en in_review — ce qui est correct :
+-- revue. Sans lui, RG-41 refuse le passage en in_review - ce qui est correct :
 -- un manager ne peut pas relire un trader qui n'est pas dans son equipe.
 update public.users t
    set manager_id = m.id

@@ -1,5 +1,5 @@
 -- ===========================================================================
--- 019 — Reglages modifiables par l administrateur
+-- 019 - Reglages modifiables par l administrateur
 -- ===========================================================================
 --
 -- Pourquoi ? L'ecran /settings etait en lecture seule : les valeurs venaient
@@ -11,7 +11,7 @@
 --
 -- Pourquoi des bornes aussi strictes ? Parce qu'une valeur aberrante appliquee
 -- a une regle de securite ne fait pas echouer une requete : elle produit un
--- systemecarbonate. Mettre login_lockout_minutes a 0 ne leve aucune erreur —
+-- systemecarbonate. Mettre login_lockout_minutes a 0 ne leve aucune erreur -
 -- il desactive silencieusement le verrouillage apres tentatives echouees.
 --
 -- Chaque modification est tracee : un changement de regle doit pouvoir etre
@@ -113,7 +113,7 @@ begin
     -- reglage d avant, pas seulement annoncer ce qu il est devenu.
     v_before := app.settings_setting(k);
 
-    -- Une seule ecriture, apres validation. Un UPDATE « cle = cle de l objet »
+    -- Une seule ecriture, apres validation. Un UPDATE " cle = cle de l objet "
     -- aurait accepte silencieusement les valeurs hors plage, qu elles soient
     -- refusees ou non.
     if r.kind = 'locale' then

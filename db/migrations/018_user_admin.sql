@@ -1,5 +1,5 @@
 -- ===========================================================================
--- 018 — Administration des comptes : modification et anonymisation
+-- 018 - Administration des comptes : modification et anonymisation
 -- ===========================================================================
 --
 -- POURQUOI PAS DE SUPPRESSION PHYSIQUE ?
@@ -17,7 +17,7 @@
 -- refuse par PostgreSQL. C'est le comportement voulu. Dans une plateforme de
 -- coaching, l'historique de discipline EST la donnee : un trader qui brule
 -- apres six mois de travail laisse la trace de ses progres. Supprimer le compte
--- detruirait ou detacherait cette preuve — precisement ce que l'application
+-- detruirait ou detacherait cette preuve - precisement ce que l'application
 -- sert a mesurer.
 --
 -- Deux reponses adaptees, exposees ici :
@@ -25,7 +25,7 @@
 --   app.update_user_account()  -> corriger le compte (role, manager, contact)
 --   app.anonymize_user()       -> effacer l'identite, garder l'historique
 --
--- L'anonymisation est le « droit a l'oubli » realiste : email, nom et
+-- L'anonymisation est le " droit a l'oubli " realiste : email, nom et
 -- telephone sont ecrases, le compte est desactive et ses sessions revoquees,
 -- mais la ligne subsiste pour que rapports et correctifs gardent leur auteur.
 --
@@ -153,7 +153,7 @@ begin
          full_name     = 'Compte anonymise',
          phone         = null,
          -- Le hash est invalide : plus aucune authentification possible, meme
-         -- par erreur de saisie sur un compte « reactive » par erreur.
+         -- par erreur de saisie sur un compte " reactive " par erreur.
          password_hash = '!anonymized',
          is_active     = false,
          mfa_enrolled  = false,
