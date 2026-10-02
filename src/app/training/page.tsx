@@ -6,6 +6,7 @@ import { can } from '@/lib/permissions';
 import Link from 'next/link';
 import { GraduationCap, BookOpen, ClipboardCheck, Clock } from 'lucide-react';
 import NewCourse from '@/components/NewCourse';
+import QuickAssign from '@/components/QuickAssign';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,7 +42,21 @@ export default async function TrainingPage() {
   const user = await pageUser();
   const isManager = can(user, 'training.assign');
 
-  const { courses, assignments } = await asUser(user.userId, async (sql) => ({
+  const { courses, assignments, teamTraders } = await asUser(user.userId, async (sql) => ({
+    // Les traders attribuables, pour le bouton « Attribuer » de la liste.
+    // Meme filtre que la page du cours : la base refuserait de toute facon un
+    // trader hors equipe (FORMATION-04), donc proposer ces noms ferait croire
+    // a un bug.
+    teamTraders: isManager
+      ? await queryWith<{ id: string; full_name: string }>(
+          sql,
+          `select u.id, u.full_name
+             from public.users u
+            where u.role = 'trader' and u.is_active
+              and (app.is_admin() or app.can_manage_trader(u.id))
+            order by u.full_name`,
+        )
+      : [],
     courses: isManager
       ? await queryWith(
           sql,
@@ -190,16 +205,39 @@ export default async function TrainingPage() {
               <ul className="divide-y divide-border">
                 {(courses as Course[]).map((c) => (
                   <li key={c.id} className="flex items-center gap-4 px-4 py-3">
-                    <div className="min-w-0 flex-1">
+                    {/* Le titre est un lien : c'est le SEUL chemin vers la page
+                        du cours, ou se trouvent l'edition et l'attribution.
+                        Sans ce lien, le parcours creer -> attribuer est
+                        impossible depuis cet ecran. */}
+                    <Link
+                      href={`/training/course/${c.id}`}
+                      className="min-w-0 flex-1 hover:underline"
+                    >
                       <p className="truncate text-sm font-semibold">{c.title}</p>
-                      {c.summary && <p className="mt-0.5 truncate text-xs text-text-muted">{c.summary}</p>}
-                    </div>
+                      {c.summary && (
+                        <p className="mt-0.5 truncate text-xs text-text-muted">{c.summary}</p>
+                      )}
+                    </Link>
                     <Badge tone={c.status === 'published' ? 'success' : 'neutral'}>
                       {c.status === 'published' ? 'Publie' : 'Brouillon'}
                     </Badge>
                     <span className="shrink-0 text-xs text-text-faint tnum">
                       {Number(c.exercise_count)} exercice(s)
                     </span>
+                    {/* Un brouillon n'est pas attribuable : un trader ne doit
+                        pas decouvrir un cours encore en relecture. Le bouton
+                        reste alors visible mais desactive, avec la raison — le
+                        retirer ferait croire qu'il n'y a rien a faire. */}
+                    {c.status === 'published' ? (
+                      <QuickAssign courseId={c.id} traders={teamTraders} />
+                    ) : (
+                      <span
+                        className="shrink-0 text-xs text-text-faint"
+                        title="Publiez le cours pour pouvoir l attribuer"
+                      >
+                        Publier pour attribuer
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>
