@@ -103,7 +103,19 @@ export async function GET(request: Request) {
       ),
     );
 
-    return jsonOk({ notifications: rows, unread: unread?.n ?? 0 });
+    // 034 : les messages recus et non lus se comptent a part. La cloche les
+    // regroupe deja (ils y sont poses en notification), mais l'entree de menu
+    // de la messagerie a besoin de SON compteur : la pastille par
+    // interlocuteur affiche un chiffre par fil, la cloche un total.
+    const unreadMessages = await asUser(user.userId, (sql) =>
+      queryOneWith<{ n: number }>(sql, `select app.unread_message_count() as n`),
+    );
+
+    return jsonOk({
+      notifications: rows,
+      unread: unread?.n ?? 0,
+      unread_messages: unreadMessages?.n ?? 0,
+    });
   } catch (error) {
     return jsonError(error);
   }

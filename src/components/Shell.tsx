@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import {
   LayoutDashboard,  FileText,  CalendarDays,  Users,  ScrollText,  Settings, 
-  Bell,  UserCircle,  Menu,  X,  ShieldCheck,  GraduationCap, 
+  Bell,  UserCircle,  Menu,  X,  ShieldCheck,  GraduationCap,  MessagesSquare, 
 } from 'lucide-react';
 import type { SessionUser } from '@/lib/auth';
 import { t } from '@/lib/i18n';
@@ -29,6 +29,8 @@ type NavItem = {
   Icon: typeof LayoutDashboard;
   /** Onglet de la barre basse en dessous de 640px. */
   tab?: boolean;
+  /** Seule entree qui porte le compteur de messages non lus. */
+  messenger?: boolean;
 };
 
 const NAV: NavItem[] = [
@@ -40,6 +42,12 @@ const NAV: NavItem[] = [
   // le priverait de sa propre page de travail.
   { href: '/training', labelKey: 'nav.training', roles: ['admin', 'manager', 'trader'], Icon: GraduationCap },
   { href: '/users', labelKey: 'nav.users', roles: ['admin'], Icon: Users },
+  // Messagerie (033) : deux entrees, une par camp. Le manager (et l'admin)
+  // ouvre « Mon equipe » ; le trader ouvre « Mon manager », son seul et unique
+  // interlocuteur. Aucune des deux n'apparait chez l'autre : c'est le role qui
+  // decide de ce que le menu propose, jamais le contenu de la page.
+  { href: '/equipe', labelKey: 'nav.team', roles: ['admin', 'manager'], Icon: Users, messenger: true },
+  { href: '/mon-manager', labelKey: 'nav.my_manager', roles: ['trader'], Icon: MessagesSquare, messenger: true },
   { href: '/audit', labelKey: 'nav.audit', roles: ['admin'], Icon: ScrollText },
   { href: '/settings', labelKey: 'nav.settings', roles: ['admin'], Icon: Settings },
 ];
@@ -60,12 +68,15 @@ function NavLink({
   locale,
   onNavigate,
   compact,
+  badge = 0,
 }: {
   item: NavItem;
   active: boolean;
   locale: string | null;
   onNavigate?: () => void;
   compact?: boolean;
+  /** Messages non lus : pertinent sur la seule entree de messagerie. */
+  badge?: number;
 }) {
   const label = t(locale, item.labelKey);
   return (
@@ -76,7 +87,7 @@ function NavLink({
       title={compact ? label : undefined}
       className={[
         'flex items-center gap-3 rounded-md text-sm transition-colors',
-        'border-l-[3px] pl-3 pr-3 py-2.5',
+        'border-l-[3px] pl-3 pr-3 py-2.5 relative',
         active
           ? 'border-l-sky-500 bg-sky-100 font-semibold text-sky-700'
           : 'border-l-transparent text-text-muted hover:bg-surface-alt hover:text-text',
@@ -85,6 +96,18 @@ function NavLink({
     >
       <item.Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2.2} />
       {!compact && <span className="truncate">{label}</span>}
+      {/* La pastille reste lisible en mode rail (l'icone seul ne suffit pas),
+          et le titre porte le chiffre pour les lecteurs d'ecran. */}
+      {badge > 0 && (
+        <span
+          title={`${badge} message(s) non lu(s)`}
+          className={`tnum ml-auto inline-flex min-w-[20px] shrink-0 items-center justify-center rounded-pill bg-sky-500 px-1.5 py-0.5 text-[11px] font-bold text-white ${
+            compact ? 'absolute -right-0.5 -top-0.5 ml-0 h-4 min-w-[16px] px-1 text-[10px]' : ''
+          }`}
+        >
+          {badge > 99 ? '99+' : badge}
+        </span>
+      )}
     </Link>
   );
 }
@@ -122,6 +145,48 @@ export default function Shell({
   const tabs = items.filter((n) => n.tab);
   const locale = user.locale;
 
+  // Pastilles de la cloche et de la messagerie.
+  //
+  // ELLES SONT LUES ICI, ET NON PASSEES PAR CHAQUE PAGE. La prop `unread`
+  // reste acceptee : la seule page qui comptait le fait — /notifications —
+  // calculait en JavaScript, donc sur les 100 dernieres lignes seulement, et sa
+  // pastille disparaissait des que la page changeait. Une pastille qui
+  // n'existe que sur un ecran n'est pas une pastille, c'est un decor.
+  //
+  // Le refetch suit le chemin : c'est ce qui fait tomber la pastille apres avoir
+  // ouvert un fil, puisque le marquage « lu » est ecrit par la page.
+  const [bell, setBell] = useState(unread);
+  const [msgUnread, setMsgUnread] = useState(0);
+
+  // LE COMPTEUR NE VAUT QUE POUR LA MESSAGERIE. Il revient ici, et nulle part
+  // ailleurs : chaque NavLink le recoit, donc le passer inconditionnellement
+  // l'affiche sur TOUTES les entrees — c'etait exactement le premier bug :
+  // « Rapports 2 », « Formation 2 », des messages qui n'ont rien a y faire.
+  //
+  // `messenger: true` sur l'entree declare « celle-ci compte les messages ».
+  // C'est une declaration par la NAV, donc lisible en un endroit, plutot
+  // qu'une comparaison de href dispersee dans le rendu.
+  const badgeOf = (item: NavItem) => (item.messenger ? msgUnread : 0);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/me')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled || !d) return;
+        setBell(Number(d.unread ?? 0));
+        setMsgUnread(Number(d.unread_messages ?? 0));
+      })
+      .catch(() => {
+        // Reseau indisponible : on garde la valeur server-side plutot que
+        // d'afficher un zero. Un compteur qui ment par defaut est pire
+        // qu'un compteur qui n'actualise pas.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
+
   // Le drawer se referme a chaque navigation : le laisser ouvert sur la page
   // suivante est le comportement le plus deroutant en mobile.
   useEffect(() => { setOpen(false); }, [pathname]);
@@ -151,7 +216,7 @@ export default function Shell({
       </div>
       <nav className="flex-1 space-y-1 px-3">
         {items.map((n) => (
-          <NavLink key={n.href} item={n} active={isActive(n.href)} locale={locale} />
+          <NavLink key={n.href} item={n} active={isActive(n.href)} locale={locale} badge={badgeOf(n)} />
         ))}
       </nav>
       <div className="border-t border-border p-3">
@@ -189,7 +254,7 @@ export default function Shell({
         </div>
         <nav className="flex-1 space-y-1 px-2">
           {items.map((n) => (
-            <NavLink key={n.href} item={n} active={isActive(n.href)} locale={locale} compact />
+            <NavLink key={n.href} item={n} active={isActive(n.href)} locale={locale} compact badge={badgeOf(n)} />
           ))}
         </nav>
       </aside>
@@ -217,9 +282,9 @@ export default function Shell({
           >
             <Bell className="h-5 w-5" strokeWidth={2.2} />
             <span className="hidden sm:inline">{t(locale, 'nav.notifications')}</span>
-            {unread > 0 && (
+            {bell > 0 && (
               <span className="tnum inline-flex min-w-[20px] items-center justify-center rounded-pill bg-sky-500 px-1.5 py-0.5 text-[11px] font-bold text-white">
-                {unread > 99 ? '99+' : unread}
+                {bell > 99 ? '99+' : bell}
               </span>
             )}
           </Link>

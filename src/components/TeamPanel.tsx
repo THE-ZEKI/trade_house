@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import MessageThread, { type Msg } from './MessageThread';
 
@@ -37,10 +37,21 @@ export default function TeamPanel({
   messages: Msg[];
   isAdmin: boolean;
 }) {
-  const [selected, setSelected] = useState<string | null>(initialSelected);
-  const current = traders.find((t) => t.id === selected) ?? null;
+  const router = useRouter();
+  const current = traders.find((t) => t.id === initialSelected) ?? null;
 
-  if (selected && current) {
+  // Le fil selectionne VIT DANS L URL (?with=...), pas dans un etat local.
+  //
+  // Les messages sont charges par le serveur, qui ne sait qu'un fil a la fois
+  // et le sait grace a ce parametre. Un useState ici affichait un fil VIDE :
+  // le composant trouvait l'interlocuteur dans la liste, montrait l'en-tete et
+  // le formulaire, mais `messages` restait le tableau de l'URL precedente —
+  // d'ou « Aucun message » sous un titre de conversation. Naviguer rejoue le
+  // serveur, et c'est aussi ce qui marque reellement les messages comme lus
+  // (la page ecrit, pas le navigateur).
+  const openThread = (id: string) => router.push(`/equipe?with=${id}`);
+
+  if (initialSelected && current) {
     return (
       <div className="grid gap-3">
         <Link
@@ -83,7 +94,7 @@ export default function TeamPanel({
         <li key={t.id}>
           <button
             type="button"
-            onClick={() => setSelected(t.id)}
+            onClick={() => openThread(t.id)}
             className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-alt"
           >
             <span className="h-9 w-9 shrink-0 rounded-pill bg-sky-100 text-center text-sm font-semibold leading-9 text-sky-700">

@@ -85,10 +85,17 @@ export default async function TeamPage({
     // Ouverture du fil = lecture. On marque ici, et pas dans la route GET de
     // l API, parce que cette page lit en base : la regle reste dans un seul
     // endroit et l appel est explicite.
+    //
+    // 034 : les DEUX etats sont mis a jour, le message ET sa notification. Les
+    // laisser diverger produirait un ecran « lu » sous une cloche « nouveau »,
+    // sur le meme message — deux vraies informations contraires.
     for (const m of messages) {
       if (m.recipient_id === user.userId && !m.read_at) {
         await asUser(user.userId, (sql) =>
           queryOneWith(sql, `select app.mark_message_read($1::uuid) as ok`, [m.id]),
+        );
+        await asUser(user.userId, (sql) =>
+          queryOneWith(sql, `select app.mark_message_notification_read($1::uuid) as ok`, [m.id]),
         );
       }
     }

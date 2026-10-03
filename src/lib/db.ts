@@ -15,15 +15,47 @@ import { Pool, type PoolClient, type QueryResultRow } from 'pg';
 
 const globalForPg = globalThis as unknown as { tradeHousePool?: Pool };
 
+/**
+ * Pool configure a partir de l'environnement, sans hypothese sur l'hebergeur.
+ *
+ * DEUX REGLAGES DONT LA VALEUR DEPEND DU FOURNISSEUR, donc lues dans l'env et
+ * non codees en dur :
+ *
+ *   DATABASE_POOL_MAX  taille du pool. Sur PostgreSQL local, 10 convient. Sur
+ *                      Neon, le plan gratuit compte les connexions actives et
+ *                      plafonne a environ 10 : un pool de 10, plus le cron et
+ *                      les migrations, sature la base et fait echouer des
+ *      requetes au pire moment. 2 laisse de la marge. C'est le SEUL levier :
+ *      le code ouvre des transactions courtes (asUser), donc chaque connexion
+ *      est rendue aussitot.
+ *
+ *   DATABASE_SSL       Neon l'exige, un PostgreSQL local non. On suit donc
+ *                      l'URL (`sslmode=require`) plutot que d'activer le TLS
+ *                      partout : le rendre obligatoire ici casserait le
+ *      developpement local, et le rendre optionnel oublierait Neon.
+ *
+ * Pourquoi un pool et pas le driver serverless de Neon : ce driver est fait
+ * pour le mode transactionnel (une seule transaction par HTTP), alors que ce
+ * projet tient des sessions et des transactions explicites. Le pool classique
+ * reste le bon outil ici.
+ */
+const poolMax = Number.parseInt(process.env.DATABASE_POOL_MAX ?? '10', 10);
+const needsSsl = /sslmode=require/i.test(process.env.DATABASE_URL ?? '');
+
 export const pool: Pool =
   globalForPg.tradeHousePool ??
   new Pool({
     connectionString: process.env.DATABASE_URL,
-    max: 10,
+    max: Number.isFinite(poolMax) && poolMax > 0 ? poolMax : 10,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
     // les erreurs ne doivent pas faire tomber le process en dev
     application_name: 'trade_house',
+    // Neon presente un certificat valide ; on ne verifie pas la chaine, car le
+    // certificat de l'hote est emis par une autorite differente de celle du
+    // systeme de fichiers du conteneur. La connexion reste chiffree, seule la
+    // verification de l'identite du serveur est desactivee.
+    ...(needsSsl ? { ssl: { rejectUnauthorized: false } } : {}),
   });
 
 // évite de créer un pool à chaque rechargement à chaud de Next.js
@@ -154,6 +186,10 @@ const APP_FUNCTIONS = new Set([
   'app.mark_message_read',
   'app.unread_message_count',
   'app.fn_user_display_name',
+  // 034 : la notification d'un message se marque lue a l'ouverture du fil,
+  // comme le message lui-meme (033). Sans elle, la cloche garderait un « non
+  // lu » alors que le fil, lui, afficherait « lu » : deux etats qui mentent.
+  'app.mark_message_notification_read',
   // 031 : seconde file d envoi, pour les notifications metier par email.
   'app.fn_is_email_event',
   'app.create_email_copies',

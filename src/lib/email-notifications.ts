@@ -80,6 +80,14 @@ const COPY: Record<Lang, Record<string, Copy>> = {
     meeting_created: { subject: 'Nouvelle reunion', body: (c) => `Vous etes invite a la reunion « ${str(c, 'title')} ».` },
     meeting_updated: { subject: 'Reunion modifiee', body: (c) => `La reunion « ${str(c, 'title')} » a ete deplacee.` },
     meeting_cancelled: { subject: 'Reunion annulee', body: (c) => `La reunion « ${str(c, 'title')} » est annulee.` },
+    // 034 : « vous avez un nouveau message », et c'est tout. Le TEXTE ne part
+    // jamais — un courriel arrive dans une boite partagee ou sur un telephone,
+    // et y ecrire ce qu'un trader a dit a son manager rompt exactement la
+    // confidentialite que la messagerie pretend preserver (033).
+    message_received: {
+      subject: 'Nouveau message',
+      body: (c) => `${c.sender_name ? str(c, 'sender_name') : 'Votre contact'} vous a ecrit un message.`,
+    },
   },
   en: {
     training_assigned: {
@@ -108,6 +116,12 @@ const COPY: Record<Lang, Record<string, Copy>> = {
     meeting_created: { subject: 'New meeting', body: (c) => `You are invited to "${str(c, 'title')}".` },
     meeting_updated: { subject: 'Meeting moved', body: (c) => `"${str(c, 'title')}" was rescheduled.` },
     meeting_cancelled: { subject: 'Meeting cancelled', body: (c) => `"${str(c, 'title')}" was cancelled.` },
+    // 034 : the text of the message never leaves the application. See the
+    // French entry above.
+    message_received: {
+      subject: 'New message',
+      body: (c) => `${c.sender_name ? str(c, 'sender_name') : 'Your contact'} sent you a message.`,
+    },
   },
 };
 

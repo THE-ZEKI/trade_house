@@ -22,6 +22,12 @@ const fr: Dict = {
   'nav.meetings': 'Reunions',
   'nav.training': 'Formation',
   'nav.users': 'Comptes',
+  // Messagerie (033) : l'equipe pour le manager et l'admin, le tuteur pour le
+  // trader. Deux entrees et non une seule : un trader n'a qu'un interlocuteur
+  // (RG-06) et n'a rien a choisir ; lui montrer une liste serait un choix en
+  // trompe-l'oeil, et le RLS refuserait tout de meme.
+  'nav.team': 'Mon equipe',
+  'nav.my_manager': 'Mon manager',
   'nav.audit': 'Journal d\'audit',
   'nav.settings': 'Reglages',
   'nav.profile': 'Mon profil',
@@ -196,6 +202,8 @@ const en: Dict = {
   'nav.meetings': 'Meetings',
   'nav.training': 'Training',
   'nav.users': 'Accounts',
+  'nav.team': 'My team',
+  'nav.my_manager': 'My manager',
   'nav.audit': 'Audit log',
   'nav.settings': 'Settings',
   'nav.profile': 'My profile',

@@ -53,6 +53,24 @@ export default async function MyManagerPage() {
       )
     : [];
 
+  // Le fil du trader a UN SEUL interlocuteur : on le charge toujours, et on le
+  // marque lu a l'ouverture, comme /equipe. Avant 034 cette page n'ecrivait
+  // rien : le message devenait « lu » a l'ecran, et sa notification restait
+  // « non lue » dans la cloche pour toujours. Deux etats contraires pour le
+  // meme evenement, dont aucun ne reprenait l'autre.
+  if (manager) {
+    for (const m of messages) {
+      if (m.recipient_id === user.userId && !m.read_at) {
+        await asUser(user.userId, (sql) =>
+          queryOneWith(sql, `select app.mark_message_read($1::uuid) as ok`, [m.id]),
+        );
+        await asUser(user.userId, (sql) =>
+          queryOneWith(sql, `select app.mark_message_notification_read($1::uuid) as ok`, [m.id]),
+        );
+      }
+    }
+  }
+
   return (
     <Shell user={user}>
       <div className="space-y-6">

@@ -169,7 +169,14 @@ async function run(request: Request) {
           email: target.email,
           event: target.event,
           context: ctx ?? {},
-          link: `${appUrl()}/notifications`,
+          // 034 : un message renvoie vers LE FIL, pas vers la cloche. Le lien
+          // « vous avez un nouveau message » qui debouche sur une liste
+          // d'evenements oblige a retrouver ledit message dans une page qui
+          // n'en affiche pas le texte : le courriel ne dit donc rien de faux,
+          // mais il ne rend pas non plus service. Le chemin est calcule en
+          // base (fn_notification_context), le cron n'ayant aucun role.
+          // La session reste verifiee par le RLS de public.messages.
+          link: `${appUrl()}/${typeof ctx?.link_path === 'string' ? ctx.link_path : 'notifications'}`,
           locale: target.locale,
         }),
       );
