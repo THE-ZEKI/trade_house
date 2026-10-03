@@ -89,6 +89,138 @@ Les routes ne font que valider l'entree et traduire la reponse.
 brancher un fournisseur de visio reel, le stockage `s3`/`supabase` et un webhook
 de bounces si le courriel part en SMTP.
 
+---
+
+## Deploiement
+
+Hébergement cible : **Vercel** (cf. cahier des charges, et `vercel.json` qui declare
+le cron). Le projet est prêt pour ça : build Next.js standard, en-têtes de sécurité
+déjà posés dans `next.config.ts`, cron déclaré.
+
+### 1. La base AVANT tout le reste
+
+L'application **ne se déploie pas sans base**. Sur Vercel, un hébergeur ne fournit
+pas PostgreSQL : il faut une base managée (Supabase, Neon, Railway) ou un serveur
+atteignable depuis Internet.
+
+⚠️ **La connexion doit se faire avec un rôle NON propriétaire.** Connecté en
+`postgres`, les politiques RLS sont contournées — le propriétaire des tables les
+bypasse — et toute la séparation des rôles du projet (RG-04, RG-06 : un trader ne
+voit que ses données) disparaît **sans la moindre erreur visible**. C'est le piège
+principal de ce déploiement, et `/api/health` le détecte (voir étape 4).
+
+```sql
+-- Une fois les migrations jouees par le role proprietaire :
+alter role trade_house_app login password 'un mot de passe fort et unique';
+-- NE PAS utiliser le compte postgres dans DATABASE_URL
+```
+
+### 2. Les migrations
+
+Elles se jouent **par le rôle propriétaire**, jamais par `trade_house_app` (qui n'a
+pas le droit de créer d'objets dans le schéma `app`). Depuis une machine ayant un
+accès `psql` à la base de production :
+
+```powershell
+$env:PGPASSWORD = 'mot de passe du role PROPRIETAIRE'
+npm run db:migrate
+```
+
+Le script lit `app.schema_migrations` et n'applique que les migrations manquantes ;
+il journalise chacune après succès, donc il est **relançable sans risque**.
+
+> L'application ne joue aucune migration au démarrage : c'est délibéré. Un
+> déploiement qui rate en cours de route laisserait un schéma à moitié modifié,
+> ce qui est pire qu'un déploiement en échec, visible et rejouable.
+
+⚠️ Une migration d'énumération pose une difficulté connue : `ALTER TYPE ... ADD
+VALUE` ne peut pas être suivi d'un usage de la valeur dans la même transaction.
+C'est le cas de la 034 (`message_received`). `db/migrate.ps1` joue chaque migration
+dans sa propre transaction, ce qui convient ; `scripts/apply-migration.mjs`, lui,
+enveloppe tout dans une seule transaction et échoue alors. Utiliser `db:migrate`
+pour la production.
+
+### 3. Variables d'environnement
+
+À déclarer dans les Variables d'environnement du projet Vercel. **Ne jamais dans le
+code**, et ne pas pousser un `.env.local` (il est dans `.gitignore`).
+
+| Variable | Production | Pourquoi |
+|---|---|---|
+| `DATABASE_URL` | **obligatoire** | rôle `trade_house_app`, **jamais** `postgres` |
+| `NEXT_PUBLIC_APP_URL` | **obligatoire** | domaine public ; les liens d'email en dépendent |
+| `APP_ENCRYPTION_KEY` | **obligatoire** | 32 caractères min. ; chiffre les secrets TOTP |
+| `CRON_SECRET` | **obligatoire** | sans lui, `/api/cron/*` refuse tout appel en production |
+| `SESSION_TTL_HOURS` | `12` | durée de session |
+| `EMAIL_PROVIDER` | `resend` | `log` n'écrit que dans la sortie du serveur |
+| `RESEND_API_KEY` | si `resend` | + webhook de bounces déclaré chez Resend |
+| `EMAIL_FROM` | domaine d'envoi | expéditeur |
+| `DAILY_API_KEY` | si visio | `VIDEO_PROVIDER=daily` |
+
+Générer une clé d'encryption :
+
+```bash
+node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"
+```
+
+### 4. Vérifier AVANT d'ouvrir à qui que ce soit
+
+```bash
+curl https://<ton-domaine>/api/health
+```
+
+La réponse attendue :
+
+```json
+{ "status": "ok", "role": "trade_house_app", "rls": { "effective": true } }
+```
+
+- `status: "degraded"` → le rôle connecté est propriétaire ou `bypassrls` :
+  **corriger `DATABASE_URL` avant toute autre chose**, sinon l'application
+  fonctionne mais sa sécurité est inopérante.
+- `status: "error"` → connexion impossible : vérifier l'URL, l'accès réseau,
+  et que les migrations ont bien été jouées.
+
+Puis, dans l'ordre :
+
+1. **Cron** — Vercel appelle `GET /api/cron/send-reminders` chaque minute avec
+   `Authorization: Bearer $CRON_SECRET`. Vérifier dans les logs qu'un passage a
+   eu lieu sans erreur. Sans `CRON_SECRET`, Vercel échoue à l'appel.
+2. **Compte administrateur** — `app.create_user` exige un administrateur (RG-02),
+   et aucun n'existe sur une base neuve :
+   ```powershell
+   .\db\migrate.ps1 -Password '...' -AdminEmail 'admin@votre-domaine.fr'
+   ```
+   Le compte créé n'a pas de mot de passe : passer par « mot de passe oublié ».
+3. **Emails** — envoyer un message de test entre un manager et un trader : la
+   notification apparaît dans la cloche, et le courriel doit arriver. Vérifier SPF,
+   DKIM et DMARC (section « delivering » plus haut).
+
+### 5. Points non couverts par ce déploiement
+
+Trois choses restent à brancher, elles ne bloquent pas la mise en ligne mais ne
+fonctionneront pas :
+
+| Sujet | État | Effet si non branché |
+|---|---|---|
+| Visio | `VIDEO_PROVIDER` vide | pas de salle vidéo réelle |
+| Stockage fichiers | `.storage/` local | **les fichiers déposés ne survivent pas à un redéploiement** |
+| Bounces email | webhook Resend | `error_message` reste vide (les relances RG-16 ne se déclenchent pas) |
+
+Le stockage est le point le plus sérieux : en filesystem local d'une fonction
+serverless, tout fichier déposé est perdu au déploiement suivant. Il faut un
+bucket S3 / Supabase avant d'utiliser réellement les rapports et la formation.
+
+### Ordre de la première mise en ligne
+
+1. Créer la base managée et jouer les migrations (`db:migrate`).
+2. Configurer le rôle `trade_house_app` + `DATABASE_URL`.
+3. Déclarer les variables d'environnement sur Vercel.
+4. Déployer. Tester `/api/health` → `status: ok`, `rls.effective: true`.
+5. Créer l'administrateur, supprimer les comptes de développement.
+6. Vérifier cron et email.
+7. Brancher le stockage avant tout usage reel des fichiers.
+
 ### Module G — la formation
 
 Le manager ecrit un **cours** (un modele, pas un parcours individuel), y attache des

@@ -41,3 +41,6 @@ __pycache__/
 .tmp-*.err
 .tmp-*.out
 
+# Journal de build lance en arriere-plan (scripts/*.log)
+build.log
+

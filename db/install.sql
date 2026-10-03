@@ -39,6 +39,15 @@
 \i migrations/023_training_submission_conflict.sql
 \i migrations/024_training_files_write.sql
 \i migrations/025_cascade_transition.sql
+\i migrations/026_course_files.sql
+\i migrations/027_manager_invites_trader.sql
+\i migrations/028_assign_trader_manager.sql
+\i migrations/029_meeting_creator_visible.sql
+\i migrations/030_notifications_formation.sql
+\i migrations/031_notifications_email.sql
+\i migrations/032_notifications_accounts.sql
+\i migrations/033_messaging.sql
+\i migrations/034_notifications_messagerie.sql
 
 \echo === Installation terminee ===
 \echo Verification :
