@@ -97,7 +97,51 @@ Hébergement cible : **Vercel** (cf. cahier des charges, et `vercel.json` qui de
 le cron). Le projet est prêt pour ça : build Next.js standard, en-têtes de sécurité
 déjà posés dans `next.config.ts`, cron déclaré.
 
-### 1. La base AVANT tout le reste
+### 1. Le cron, et ce que sa frequence limite
+
+`vercel.json` declare `/api/cron/send-reminders`. **Sur un compte Vercel gratuit
+(Hobby), les crons sont limites a une execution par jour** : une expression
+`* * * * *` est refusee au deploiement. Le schedule est donc passe a
+`0 8 * * *` — une fois par jour, a 8 h UTC.
+
+Ce que cela change, et ce que cela ne change pas. C est le point a retenir :
+
+**INCHANGE — tout le coeur applicatif.** Les notifications in_app sont ecrites
+par des TRIGGERS SQL et lues directement en base (`notifications_log`) ; elles
+n ont jamais attendu le cron. La cloche, les pastilles, le marquage « lu », les
+rapports, la formation, la messagerie : rien de tout cela n est touche. C est
+volontaire dans la conception — une notification qui depend d un job planifie
+serait une notification qui peut ne jamais arriver.
+
+**DEGRADE — la sortie d email et la fermeture des reunions.**
+
+| Mecanisme | Prevu | Avec un passage par jour |
+|---|---|---|
+| Rappel « la veille » (RG-14) | J-1 | arrive entre 0 et 24 h trop tard, parfois apres la reunion |
+| Rappel « une heure avant » | H-1 | idem, donc souvent sans utilite |
+| Email de notification metier | immediat | dans la file, envoi le lendemain 8 h |
+| RG-20 : reunion close a fin + 2 h | + 2 h | cloture le lendemain |
+| 3 relances RG-16 (espacees de 10 min) | ~30 min | **rompu** : un seul passage le jour |
+
+Sur les relances RG-16, la casse est reelle et non un simple retard :
+`mark_notification_failed` planifie `next_attempt_at = now() + 10 min`, et le job
+ne repasse que le lendemain. L email est donc reessaie une fois, a 8 h le
+lendemain, puis la troisieme tentative ne partira qu au surlendemain — un rythme
+qui ne ressemble plus a rien de ce qui est ecrit dans la regle.
+
+**CE QUI N EST PAS PERDU POUR AUTANT.** `app.claim_due_reminders` selectionne
+`status = 'scheduled' and send_at <= now()` : un rappel rate n est pas abandonne,
+il part au passage suivant. Rien n est ecrase, rien n est perdu — c est le
+RENDU qui change, pas la.file.
+
+**Pour la frequence minute, sans payer :** faire appeler la route par un
+ordonnanceur externe gratuit (cron-job.org, UptimeRobot…), en `GET` avec
+l en-tete `Authorization: Bearer <CRON_SECRET>`. La route accepte deja les deux
+methodes et le secret est prevu pour cela. Un cron quotidien peut rester en
+secours : le job est idempotent (`FOR UPDATE SKIP LOCKED`), deux appels ne
+traitent jamais le meme rappel.
+
+### 2. La base AVANT tout le reste
 
 L'application **ne se déploie pas sans base**. Sur Vercel, un hébergeur ne fournit
 pas PostgreSQL : il faut une base managée (Supabase, Neon, Railway) ou un serveur
@@ -115,7 +159,7 @@ alter role trade_house_app login password 'un mot de passe fort et unique';
 -- NE PAS utiliser le compte postgres dans DATABASE_URL
 ```
 
-### 2. Les migrations
+### 3. Les migrations
 
 Elles se jouent **par le rôle propriétaire**, jamais par `trade_house_app` (qui n'a
 pas le droit de créer d'objets dans le schéma `app`). Depuis une machine ayant un
@@ -140,7 +184,7 @@ dans sa propre transaction, ce qui convient ; `scripts/apply-migration.mjs`, lui
 enveloppe tout dans une seule transaction et échoue alors. Utiliser `db:migrate`
 pour la production.
 
-### 3. Variables d'environnement
+### 4. Variables d'environnement
 
 À déclarer dans les Variables d'environnement du projet Vercel. **Ne jamais dans le
 code**, et ne pas pousser un `.env.local` (il est dans `.gitignore`).
@@ -163,7 +207,7 @@ Générer une clé d'encryption :
 node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"
 ```
 
-### 4. Vérifier AVANT d'ouvrir à qui que ce soit
+### 5. Vérifier AVANT d'ouvrir à qui que ce soit
 
 ```bash
 curl https://<ton-domaine>/api/health
@@ -196,7 +240,7 @@ Puis, dans l'ordre :
    notification apparaît dans la cloche, et le courriel doit arriver. Vérifier SPF,
    DKIM et DMARC (section « delivering » plus haut).
 
-### 5. Points non couverts par ce déploiement
+### 6. Points non couverts par ce déploiement
 
 Trois choses restent à brancher, elles ne bloquent pas la mise en ligne mais ne
 fonctionneront pas :
