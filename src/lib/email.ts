@@ -89,7 +89,9 @@ async function smtp() {
 export async function sendEmail(message: EmailMessage): Promise<EmailResult> {
   const name = provider();
   const from = env('EMAIL_FROM') ?? 'Trade House <no-reply@trade-house.local>';
-  const appUrl = env('NEXT_PUBLIC_APP_URL') ?? 'http://localhost:3000';
+  // Meme normalisation que appUrl() : un « // » dans le lien d'invitation
+  // produirait le meme defaut que sur le mot de passe oublie.
+  const appUrl = (env('NEXT_PUBLIC_APP_URL') ?? 'http://localhost:3000').replace(/\/+$/, '');
 
   if (name === 'log') {
     console.info(
@@ -178,6 +180,10 @@ export function mayExposeToken(): boolean {
 }
 
 export function appUrl(): string {
-  return env('NEXT_PUBLIC_APP_URL') ?? 'http://localhost:3000';
+  // Les barres obliques finales sont retirees : NEXT_PUBLIC_APP_URL se copie
+  // facilement depuis la barre d'adresse du navigateur, ou il en reste une
+  // (« https://app.vercel.app/ »). Concatenere produirait alors « //route »,
+  // que certains clients mail ou routeurs traitent mal.
+  return (env('NEXT_PUBLIC_APP_URL') ?? 'http://localhost:3000').replace(/\/+$/, '');
 }
 
