@@ -29,12 +29,17 @@ tsconfig.tsbuildinfo
 .idea/
 __pycache__/
 # Artefacts de compilation des tests
-.tmp-totp/
-.tmp-email/
+# Ces dossiers sont regeneres a chaque `npm run verify:*` (voir package.json) :
+# le script y compile le module puis le charge. Rien n'y est a versionner, et
+# .tmp-totp/ contient en plus des apercus de PDF et des secrets de test.
+.tmp-*/
+.tmp-*
+
+# Fichiers deposes par les utilisateurs (piece jointe de rapport, support de
+# cours). Volumineux et propre a chaque poste : ils ne doivent jamais aller sur
+# GitHub. Sur un deploiement, ce dossier est de toute facon ephemere — c est
+# pour cela qu app_settings.storage_provider existe (s3 / supabase).
 .storage/
-.tmp-storage/
-.tmp-pdf/
-.tmp-room/
 
 # Sorties des scripts de verification (logs, stderr)
 .tmp-*.log
@@ -43,4 +48,18 @@ __pycache__/
 
 # Journal de build lance en arriere-plan (scripts/*.log)
 build.log
+
+# Reliques de tests manuels, a la racine.
+#
+# `cookies.txt` est un cookie jar de curl, `l.json` et `login.json` des charges
+# utiles de connexion contenant le mot de passe d'essai, `inv.json` une charge
+# d'invitation. Aucun n'a sa place dans le depot : ce sont des jetons et des
+# mots de passe, meme de developpement, et ils se regenerent en une commande.
+cookies.txt
+*.cookies
+l.json
+login.json
+inv.json
+vsc.txt
+scratch/
 
