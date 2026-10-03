@@ -124,6 +124,7 @@ $footer = @'
 --    -> attendu : { "status": "ok", "rls": { "effective": true } }
 --
 -- ============================================================================
+'@
 $parts = New-Object System.Collections.Generic.List[string]
 foreach ($f in $files) {
     $raw = [IO.File]::ReadAllText($f.FullName)
@@ -132,7 +133,7 @@ foreach ($f in $files) {
 
     # 009_seed.sql : retirer le bloc `do $$ ... $$` qui cree les comptes d essai,
     # en conservant l insertion dans app_settings et la creation du role.
-    if ($f.BaseName -eq '009_seed.sql') {
+    if ($f.BaseName -eq '009_seed') {
         $start = $body.IndexOf('do $$')
         if ($start -ge 0) {
             $end = $body.IndexOf('$$;', $start)
@@ -154,19 +155,17 @@ foreach ($f in $files) {
 # Controle : aucun mot de passe d essai ne doit subsister dans le fichier
 # produit. C est la seule verif qui compte vraiment ici, car le fichier est
 # destine a etre colle dans une base de production.
-$leftovers = Select-String -Path $dest -Pattern 'Admin!2345|Manager!2345|Trader!2345'
+#
+# On ignore les lignes de commentaire : l'en-tete du fichier et la migration
+# 015 citent ces mots de passe pour expliquer pourquoi ils sont exclus. Chercher
+# la chaine brute rendrait ce controle impossible a satisfaire alors que le
+# fichier est propre.
+$leftovers = Select-String -Path $dest -Pattern 'Admin!2345|Manager!2345|Trader!2345' |
+             Where-Object { $_.Line -notmatch '^\s*--' }
 if ($leftovers) {
+    $leftovers | ForEach-Object { Write-Host "  L$($_.LineNumber): $($_.Line.Trim())" }
     throw 'comptes de developpement encore presents dans le fichier genere'
 }
 
 Write-Host "neon-install.sql regenere : $($files.Count) migrations, $((Get-Item $dest).Length) octets"
 Write-Host "  $($files[0].Name) .. $($files[-1].Name)"
-'@
-$migDir = Join-Path (Split-Path $PSScriptRoot -Parent) 'migrations'
-if (-not (Test-Path $migDir)) { throw "dossier de migrations introuvable : $migDir" }
-
-$files = Get-ChildItem $migDir -Filter '*.sql' | Sort-Object Name
-if ($files.Count -eq 0) { throw 'aucune migration trouvee' }
-
-if (-not (Test-Path $OutDir)) { New-Item -ItemType Directory -Force -Path $OutDir | Out-Null }
-$dest = Join-Path $OutDir 'neon-install.sql'

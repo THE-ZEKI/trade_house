@@ -31,7 +31,7 @@ warnings: list[str] = []
 # (source de vÃ©ritÃ© : README.md, section Â« API metier Â»)
 EXPECTED_FUNCTIONS = {
     # comptes
-    "create_user", "issue_invitation", "accept_invitation", "set_password",
+    "create_user", "issue_invitation", "accept_invitation", "set_password", "issue_password_reset",
     "deactivate_user", "reactivate_user", "update_profile", "hash_token",
     "fn_password_meets_policy", "current_user_id", "current_user_role",
     "set_user", "is_admin", "is_manager", "is_trader", "can_manage_trader",

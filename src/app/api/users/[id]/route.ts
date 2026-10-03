@@ -1,7 +1,7 @@
 import { asUser, callApp, queryWith, queryOneWith } from '@/lib/db';
 import { jsonError, jsonOk } from '@/lib/http';
 import { requireUser } from '@/lib/auth';
-import { sendEmail, appUrl } from '@/lib/email';
+import { sendEmail, appUrl, emailProvider } from '@/lib/email';
 import { invitationEmail } from '@/lib/email-templates';
 import { AppError } from '@/lib/errors';
 
@@ -121,7 +121,7 @@ export async function PATCH(request: Request, { params }: Params) {
               invitationEmail(account.full_name, account.email, link, user.locale === 'en' ? 'en' : 'fr'),
             );
           }
-          const show = (process.env.EMAIL_PROVIDER ?? 'log') === 'log' ? { previewLink: link } : {};
+          const show = emailProvider() === 'log' ? { previewLink: link } : {};
           return { invited: true, ...show };
         }
 

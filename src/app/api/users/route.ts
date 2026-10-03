@@ -1,7 +1,7 @@
 import { asUser, callApp, queryWith } from '@/lib/db';
 import { jsonError, jsonOk } from '@/lib/http';
 import { requireUser } from '@/lib/auth';
-import { sendEmail, appUrl } from '@/lib/email';
+import { sendEmail, appUrl, emailProvider } from '@/lib/email';
 import { invitationEmail } from '@/lib/email-templates';
 import { can } from '@/lib/permissions';
 
@@ -181,7 +181,7 @@ export async function POST(request: Request) {
     const link = `${appUrl()}/invitation?token=${encodeURIComponent(created.token ?? '')}`;
     await sendEmail(invitationEmail(body.fullName, body.email, link, user.locale === 'en' ? 'en' : 'fr'));
 
-    const preview = (process.env.EMAIL_PROVIDER ?? 'log') === 'log' ? { previewLink: link } : {};
+    const preview = emailProvider() === 'log' ? { previewLink: link } : {};
     return jsonOk({ user: { id: created.id, ...body, is_active: true }, ...preview }, 201);
   } catch (error) {
     const message = error instanceof Error ? error.message : '';

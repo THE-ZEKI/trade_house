@@ -30,8 +30,31 @@ export type EmailResult = {
   error?: string;
 };
 
-const provider = () => process.env.EMAIL_PROVIDER ?? 'log';
+/**
+ * L'import de fichiers .env par les hebergeurs (Vercel, etc.) laisse
+ * frequemment les guillemets DANS la valeur : "resend" au lieu de resend.
+ * Les guillemets feraient echouer une comparaison exacte et surtout
+ * tripodoter la cle d'API ("re_xxx"), qui est rejetee par le fournisseur.
+ * Toute valeurIssue de l'environnement est donc normalisee ici, une fois
+ * pour toutes, plutot qu'a chaque appel.
+ */
+function env(name: string): string | undefined {
+  const raw = process.env[name];
+  if (raw === undefined) return undefined;
+  const cleaned = raw.trim().replace(/^(['"])([\s\S]*)\1$/, '$2').trim();
+  return cleaned === '' ? undefined : cleaned;
+}
+
+const provider = () => env('EMAIL_PROVIDER') ?? 'log';
 const isDev = () => process.env.NODE_ENV !== 'production' && provider() === 'log';
+
+/**
+ * Fournisseur reellement configure, a utiliser hors de ce module (les routes
+ * qui doivent savoir si elles peuvent renvoyer un jeton a l'ecran).
+ */
+export function emailProvider(): string {
+  return provider();
+}
 
 // --- SMTP -----------------------------------------------------------------
 // Le transporteur est cree une fois puis reutilise : ouvrir une connexion
@@ -43,14 +66,14 @@ async function smtp() {
   if (!smtpTransport) {
     smtpTransport = (async () => {
       const nodemailer = (await import('nodemailer')).default;
-      const port = Number.parseInt(process.env.SMTP_PORT ?? '587', 10);
+      const port = Number.parseInt(env('SMTP_PORT') ?? '587', 10);
       return nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
+        host: env('SMTP_HOST'),
         port: Number.isFinite(port) ? port : 587,
         // 465 = TLS direct, 587 = STARTTLS
-        secure: (process.env.SMTP_SECURE ?? String(port === 465)) === 'true',
-        auth: process.env.SMTP_USER
-          ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD ?? '' }
+        secure: (env('SMTP_SECURE') ?? String(port === 465)) === 'true',
+        auth: env('SMTP_USER')
+          ? { user: env('SMTP_USER'), pass: env('SMTP_PASSWORD') ?? '' }
           : undefined,
         // tolerance de 10 s : au-dela, mieux vaut echouer vite et laisser
         // RG-16 planifier une relance que bloquer la requete
@@ -65,8 +88,8 @@ async function smtp() {
 
 export async function sendEmail(message: EmailMessage): Promise<EmailResult> {
   const name = provider();
-  const from = process.env.EMAIL_FROM ?? 'Trade House <no-reply@trade-house.local>';
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  const from = env('EMAIL_FROM') ?? 'Trade House <no-reply@trade-house.local>';
+  const appUrl = env('NEXT_PUBLIC_APP_URL') ?? 'http://localhost:3000';
 
   if (name === 'log') {
     console.info(
@@ -76,7 +99,7 @@ export async function sendEmail(message: EmailMessage): Promise<EmailResult> {
   }
 
   if (name === 'resend') {
-    if (!process.env.RESEND_API_KEY) {
+    if (!env('RESEND_API_KEY')) {
       console.warn('[email] RESEND_API_KEY absent, message non envoye');
       return { delivered: false, provider: name, error: 'RESEND_API_KEY absent' };
     }
@@ -84,7 +107,7 @@ export async function sendEmail(message: EmailMessage): Promise<EmailResult> {
       const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
-          authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          authorization: `Bearer ${env('RESEND_API_KEY')}`,
           'content-type': 'application/json',
         },
         body: JSON.stringify({
@@ -110,7 +133,7 @@ export async function sendEmail(message: EmailMessage): Promise<EmailResult> {
   }
 
   if (name === 'smtp') {
-    if (!process.env.SMTP_HOST) {
+    if (!env('SMTP_HOST')) {
       console.warn('[email] SMTP_HOST absent, message non envoye');
       return { delivered: false, provider: name, error: 'SMTP_HOST absent' };
     }
@@ -155,6 +178,6 @@ export function mayExposeToken(): boolean {
 }
 
 export function appUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  return env('NEXT_PUBLIC_APP_URL') ?? 'http://localhost:3000';
 }
 

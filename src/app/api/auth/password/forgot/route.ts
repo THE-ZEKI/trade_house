@@ -33,8 +33,13 @@ export async function POST(request: Request) {
     );
 
     if (account?.is_active) {
+      // app.issue_invitation NE PEUT PAS servir ici : pour purpose
+      // 'password_reset' elle exige app.is_admin(), et cette route est anonyme
+      // (personne n'est connecte au moment de la demande) -> 409 systematique.
+      // app.issue_password_reset est le chemin dedie au parcours autonome : meme
+      // jeton, meme duree, mais limite a CE compte-la (035).
       const token = await withTransaction((sql) =>
-        callApp<string>(sql, 'app.issue_invitation', [account.id, 'password_reset']),
+        callApp<string>(sql, 'app.issue_password_reset', [account.id]),
       );
       const link = `${appUrl()}/mot-de-passe-oublie?token=${token}`;
       await sendEmail({

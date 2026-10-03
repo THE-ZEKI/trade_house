@@ -164,6 +164,10 @@ const APP_FUNCTIONS = new Set([
   'app.reactivate_user',
   'app.create_user',
   'app.issue_invitation',
+  // 035 : emission du jeton « mot de passe oublie ». Distincte d'issue_invitation
+  // qui, pour 'password_reset', exige un admin — impossible ici, la route etant
+  // anonyme. Cette fonction n'agit que sur le compte de l'appelant.
+  'app.issue_password_reset',
   // 027 : le manager invite un trader qui tombe sous sa couverture. La
   // fonction impose le role et le manager ; cette liste n'autorise que l'appel.
   'app.invite_trader',
