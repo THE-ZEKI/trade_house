@@ -57,12 +57,46 @@ export function formatDate(iso: string, l: Lang = 'fr'): string {
   }).format(new Date(iso));
 }
 
+/**
+ * Corps HTML d'un email porteur de lien.
+ *
+ * Gmail n'auto-lienifie pas les URL longues suivie d'un jeton : le destinataire
+ * doit selectionner la ligne a la main, ce qu'il ne fait jamais. Un bouton est
+ * donc necessaire. Le text/plain reste en repli (le destinataire y copie le
+ * lien s'il prefere), et l'echappement est obligatoire : le nom vient d'une
+ * saisie utilisateur et le lien est place dans un attribut href.
+ */
+export function linkEmailHtml(escape: (v: string) => string, intro: string, cta: string, link: string, note: string): string {
+  return `<p>${intro}</p>
+<p><a href="${escape(link)}" style="display:inline-block;padding:12px 20px;background:#0284c7;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">${escape(cta)}</a></p>
+<p style="font-size:13px;color:#64748b">Si le bouton ne fonctionne pas, copiez ce lien :<br><a href="${escape(link)}">${escape(link)}</a></p>
+<p style="font-size:13px;color:#64748b">${escape(note)}</p>`;
+}
+
 export function invitationEmail(name: string, email: string, link: string, l: Lang): EmailMessage {
+  const intro = `Bonjour ${name},`;
   return {
     to: email,
     subject: copy[l].invitationSubject,
     text: copy[l].invitationBody(name, link),
+    html: linkEmailHtml(
+      escapeHtml,
+      intro,
+      l === 'fr' ? 'Definir mon mot de passe' : 'Set my password',
+      link,
+      l === 'fr' ? 'Ce lien expire dans 7 jours.' : 'This link expires in 7 days.',
+    ),
   };
+}
+
+/** Echappement HTML partage : le nom vient d'une saisie utilisateur. */
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 export function reminderEmail(params: {
