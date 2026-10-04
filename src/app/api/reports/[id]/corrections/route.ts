@@ -31,7 +31,13 @@ export async function POST(request: Request, { params }: Params) {
   const targetType = typeof body.targetType === 'string' ? body.targetType : 'general';
   const targetField = typeof body.targetField === 'string' ? body.targetField.trim() : null;
   const targetFileId = typeof body.targetFileId === 'string' ? body.targetFileId : null;
-  const severity = typeof body.severity === 'string' ? body.severity : 'medium';
+  // Le defaut doit exister dans l'enum. Il valait 'medium', qui n'existe pas :
+  // correction_severity ne contient que 'mandatory' et 'suggestion'. Le code
+  // ne declenchait pas l'erreur — l'interface envoie toujours une valeur — mais
+  // un appel direct sans severity se serait fait refuser en 422 avec un
+  // message qui ne designait pas la vraie cause. Un defaut invalide est une
+  // impasse qui n'apparait que le jour ou on l'atteint.
+  const severity = typeof body.severity === 'string' ? body.severity : 'suggestion';
 
   if (!message || message.length > 4000) {
     return jsonOk({ error: { code: 'VALIDATION', message: 'Message requis (4000 car. max)', rule: null } }, 422);
