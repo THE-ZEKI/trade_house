@@ -1,4 +1,4 @@
-import PDFDocument from 'pdfkit';
+import { chargerPdfKit } from './pdfkit-loader';
 import { getFile } from './storage';
 // COLORS, clean, EMBEDDABLE, line, section, keyValue et ensureSpace vivent
 // dans pdf-kit : la formation les reutilise, et les dupliquer les ferait
@@ -43,6 +43,11 @@ const CORRECTION_STATUS_LABELS: Record<string, string> = {
   open: 'Ouvert', done: 'Traite', rejected: 'Rejete par le trader', dropped: 'Abandonne',
 };
 export async function renderReportPdf(data: PdfReport): Promise<Buffer> {
+  // via pdfkit-loader : l'import direct de pdfkit echouait sur le bundler de
+  // Vercel (« Cannot find module '#standard-fonts/Helvetica' »). C'est le seul
+  // endroit du projet ou le constructeur est obtenu sans passer par newDoc,
+  // parce que ce document a ses propres options de mise en page.
+  const PDFDocument = await chargerPdfKit();
   const doc = new PDFDocument({
     size: 'A4',
     margin: 45,

@@ -1,4 +1,9 @@
-import PDFDocument from 'pdfkit';
+import { chargerPdfKit } from './pdfkit-loader';
+
+// PDFDocument n'est plus importe directement. Voir pdfkit-loader.ts : en ESM,
+// sur le bundler de Vercel, cela echouait sur « Cannot find module
+// '#standard-fonts/Helvetica' » des le premier glyphe. newDoc est donc async et
+// attend le constructeur.
 
 /**
  * Primitives de mise en page partagees par les exports PDF.
@@ -76,7 +81,8 @@ export function collect(doc: PDFKit.PDFDocument): Promise<Buffer> {
 /** pdfkit n'embarque que PNG et JPEG : le reste est liste, pas affiche. */
 export const EMBEDDABLE = new Set(['image/png', 'image/jpeg']);
 
-export function newDoc(title: string, subject: string): PDFKit.PDFDocument {
+export async function newDoc(title: string, subject: string): Promise<PDFKit.PDFDocument> {
+  const PDFDocument = await chargerPdfKit();
   return new PDFDocument({
     size: 'A4',
     margin: 45,

@@ -65,7 +65,10 @@ function fmt(value: unknown): string {
 }
 
 export async function renderTrainingPdf(data: PdfTraining): Promise<Buffer> {
-  const doc = newDoc(`Dossier de formation - ${clean(data.course.title, 120)}`, 'Dossier de formation');
+  // await obligatoire : newDoc charge pdfkit et ses polices (voir
+  // pdfkit-loader.ts). C'est cette attente qui remplace l'import direct, qui
+  // echouait sur le bundler de Vercel.
+  const doc = await newDoc(`Dossier de formation - ${clean(data.course.title, 120)}`, 'Dossier de formation');
   const done = collect(doc);
 
   // --- en-tete -----------------------------------------------------------
