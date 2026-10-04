@@ -1,9 +1,26 @@
-import { chargerPdfKit } from './pdfkit-loader';
-
-// PDFDocument n'est plus importe directement. Voir pdfkit-loader.ts : en ESM,
-// sur le bundler de Vercel, cela echouait sur « Cannot find module
-// '#standard-fonts/Helvetica' » des le premier glyphe. newDoc est donc async et
-// attend le constructeur.
+// NE PAS remettre d'import dynamique ici.
+//
+// L'export PDF echouait sur Vercel avec :
+//
+//     Cannot find module '#standard-fonts/Helvetica'
+//
+// pdfkit charge ses polices via un « subpath import » interne (#standard-fonts/
+// ...). Le bundler de Next embarquait le paquet dans le bundle server, ou cet
+// alias n'a plus de sens : le fichier est bien present, mais la table d'imports
+// qui le definissait ne l'est plus.
+//
+// Le correctif n'est PAS dans ce fichier, il est dans next.config.ts :
+// serverExternalPackages: ['pdfkit']. Le paquet reste alors dans node_modules
+// et Node le resout normalement, alias compris.
+//
+// Un correctif a base de createRequire a ete tente avant, ecrit dans le code
+// appelant. Il n'a rien change : l'echec survient pendant la RESOLUTION du
+// module, donc avant la premiere ligne de notre code. Aucun code applicatif ne
+// peut y remedier — seule la facon dont le paquet est livre a Node compte.
+//
+// Le module lui-meme est importe normalement : c'est next.config.ts qui
+// l'empeche d'etre embarque, pas cet import.
+import PDFDocument from 'pdfkit';
 
 /**
  * Primitives de mise en page partagees par les exports PDF.
@@ -81,8 +98,7 @@ export function collect(doc: PDFKit.PDFDocument): Promise<Buffer> {
 /** pdfkit n'embarque que PNG et JPEG : le reste est liste, pas affiche. */
 export const EMBEDDABLE = new Set(['image/png', 'image/jpeg']);
 
-export async function newDoc(title: string, subject: string): Promise<PDFKit.PDFDocument> {
-  const PDFDocument = await chargerPdfKit();
+export function newDoc(title: string, subject: string): PDFKit.PDFDocument {
   return new PDFDocument({
     size: 'A4',
     margin: 45,
