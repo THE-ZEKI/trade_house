@@ -9,9 +9,10 @@ import MessageThread, { type Msg } from './MessageThread';
 type Interlocuteur = {
   id: string;
   full_name: string;
-  // 036 : l'admin parle aussi a des managers. La liste affiche le role pour
-  // que deux comptes homonymes ne soient pas confondus.
-  role: 'manager' | 'trader';
+  // 036 : l'admin parle a tout le monde, donc tout le monde le voit dans SA
+  // liste. Le role sert a l'afficher : « Administrateur » se distingue
+  // immediatement d'un manager homonyme.
+  role: 'admin' | 'manager' | 'trader';
   last_message: string | null;
   last_at: string | null;
   unread: number;
@@ -37,12 +38,19 @@ export default function TeamPanel({
   initialSelected,
   messages,
   isAdmin,
+  backHref = '/equipe',
+  backLabel = 'Mon equipe',
 }: {
   meId: string;
   interlocuteurs: Interlocuteur[];
   initialSelected: string | null;
   messages: Msg[];
   isAdmin: boolean;
+  // 036 : la page est partagee entre /equipe et /mon-manager. Le lien de retour
+  // doit suivre la page d'origine : un « retour a Mon equipe » affiche a un
+  // trader l'ecran de quelqu'un d'autre.
+  backHref?: string;
+  backLabel?: string;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState('');
@@ -66,27 +74,31 @@ export default function TeamPanel({
   // d'ou « Aucun message » sous un titre de conversation. Naviguer rejoue le
   // serveur, et c'est aussi ce qui marque reellement les messages comme lus
   // (la page ecrit, pas le navigateur).
-  const openThread = (id: string) => router.push(`/equipe?with=${id}`);
+  const openThread = (id: string) => router.push(`${backHref}?with=${id}`);
 
   if (initialSelected && current) {
     return (
       <div className="grid gap-3">
         <Link
-          href="/equipe"
+          href={backHref}
           className="inline-flex items-center gap-1.5 text-xs text-accent hover:underline"
         >
-          &larr; Mon equipe
+          &larr; {backLabel}
         </Link>
         <div className="flex items-center justify-between gap-2">
           <h2 className="flex items-center gap-2 text-base font-semibold">
             {current.full_name}
             {/* meme rappel de role qu dans la liste : sans lui, un fil ouvert
                 ne dit pas a qui l on parle. */}
-            {isAdmin && (
+            {current.role === 'admin' ? (
+              <span className="rounded-pill bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700">
+                administrateur
+              </span>
+            ) : isAdmin ? (
               <span className="rounded-pill bg-surface-alt px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-faint">
                 {current.role === 'manager' ? 'manager' : 'trader'}
               </span>
-            )}
+            ) : null}
           </h2>
           {current.unread > 0 && (
             <span className="rounded-pill bg-sky-500 px-2 py-0.5 text-xs font-semibold text-white tnum">
@@ -169,10 +181,17 @@ export default function TeamPanel({
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">
                     <span className="truncate text-sm font-semibold">{t.full_name}</span>
-                    {/* 036 : l'admin distingue un manager d'un trader sur la meme
-                        liste. Sans ce rappel, deux comptes au meme prenom
-                        seraient indiscernables. */}
-                    {isAdmin && (
+                    {/* Le rappel de role ne depend PAS du role du lecteur : c'est
+                        le MANAGER qui doit voir « admin » sur la ligne de
+                        l'administrateur, puisque c'est la seule ligne qui ne
+                        fait pas partie de son equipe. Le conditionner a isAdmin
+                        — comme avant 036 — l'aurait justement masque. */}
+                    {t.role === 'admin' && (
+                      <span className="shrink-0 rounded-pill bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700">
+                        administrateur
+                      </span>
+                    )}
+                    {isAdmin && t.role !== 'admin' && (
                       <span className="shrink-0 rounded-pill bg-surface-alt px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-faint">
                         {t.role === 'manager' ? 'manager' : 'trader'}
                       </span>

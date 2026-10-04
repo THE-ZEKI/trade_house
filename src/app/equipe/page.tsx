@@ -53,10 +53,16 @@ export default async function TeamPage({
     // role : la clause WHERE impose IN ('manager','trader'), donc le type
     // Postgres renvoie bien une union, pas un varchar quelconque. Le dire
     // evite un cast `as` au passage de la requete au composant.
+    //
+    // 036, DEUXIEME TEMPS : l'admin est ajout meme pour un MANAGER. Le canal
+    // d'annonces est bilateral — « tout le monde peut lui repondre » (036) —
+    // donc un message de l'admin doit avoir ou apparaitre. Sans cette ligne,
+    // le manager recoit la notification, ouvre /equipe, et ne voit rien : le
+    // message existe en base mais n'est atteignable par aucun ecran.
     queryWith<{
       id: string;
       full_name: string;
-      role: 'manager' | 'trader';
+      role: 'admin' | 'manager' | 'trader';
       last_message: string | null;
       last_at: string | null;
       unread: number;
@@ -79,10 +85,14 @@ export default async function TeamPage({
         where t.is_active
           and t.id <> $1::uuid
           and (
-                ($2::boolean = false and t.role = 'trader'
-                   and app.can_manage_trader(t.id))
+                -- l admin : interlocuteur de tout le monde (036)
+                t.role = 'admin'
              or ($2::boolean = true and t.role in ('manager', 'trader'))
+             or ($2::boolean = false and t.role = 'trader'
+                   and app.can_manage_trader(t.id))
               )
+        -- l admin d abord : c est le canal transversal, il ne doit pas
+        -- etre melange a la liste de l equipe propre au manager.
         order by t.role, t.full_name`,
       [user.userId, isAdmin],
     ),
