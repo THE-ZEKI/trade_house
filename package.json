@@ -35,6 +35,7 @@
     "@daily-co/daily-js": "^0.92.2",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/pdfkit": "^0.17.6",
+    "@vercel/blob": "^2.8.0",
     "bcryptjs": "^3.0.2",
     "lucide-react": "^1.49.0",
     "next": "^15.5.0",

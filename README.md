@@ -248,8 +248,12 @@ fonctionneront pas :
 | Sujet | État | Effet si non branché |
 |---|---|---|
 | Visio | `VIDEO_PROVIDER` vide | pas de salle vidéo réelle |
-| Stockage fichiers | `.storage/` local | **les fichiers déposés ne survivent pas à un redéploiement** |
 | Bounces email | webhook Resend | `error_message` reste vide (les relances RG-16 ne se déclenchent pas) |
+
+Le stockage est résolu : `src/lib/storage.ts` bascule tout seul sur Vercel Blob
+dès que `BLOB_READ_WRITE_TOKEN` est présente, et garde le disque local sinon.
+En son absence, l'upload échoue avec
+`ENOENT ... mkdir '/var/task/.storage'` — `/var/task` est en lecture seule.
 
 Le stockage est le point le plus sérieux : en filesystem local d'une fonction
 serverless, tout fichier déposé est perdu au déploiement suivant. Il faut un
@@ -328,8 +332,21 @@ Points a connaaitre :
 
 ### Stockage des fichiers
 
-`.storage/` en developpement, hors de `public/`. En production, basculer
-`storage_provider` sur `s3` ou `supabase` (reglages) et brancher l'adaptateur.
+Deux supports derrière la même interface (`putFile` / `getFile` / `deleteFile`),
+choisis automatiquement :
+
+| Condition | Support |
+|---|---|
+| `BLOB_READ_WRITE_TOKEN` absente | `.storage/` en local, hors de `public/` |
+| `BLOB_READ_WRITE_TOKEN` présente | Vercel Blob, `access: 'private'` |
+
+Le disque local est en lecture seule sur Vercel : l'y écrire échoue toujours.
+Le chemin stocké en base (`storage_path`) a le même format dans les deux cas,
+`utilisateur/AAAA-MM-JJ/<hex>.<ext>`, donc basculer de support ne demande aucune
+migration.
+
+Les blobs sont privés : aucune URL n'est exposée, la lecture passe par les
+routes `/api/.../files/:id`, qui vérifient le RLS ou un jeton signé court.
 
 ```powershell
 # tout-en-un : validation statique + recreation de la base + installation + 67 assertions
