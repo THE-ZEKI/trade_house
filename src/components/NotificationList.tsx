@@ -1,7 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { Search, X } from 'lucide-react';
 import { NOTIFY_STATUS } from '@/lib/status';
 import { CodeBadge } from '@/components/ui';
 
@@ -44,6 +45,30 @@ export default function NotificationList({
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState('');
+
+  // RECHERCHE
+  //
+  // Le filtre porte sur l'evenement, le canal, le statut et le message
+  // d'erreur : ce sont les quatre champs texte que voit l'utilisateur. Filtrer
+  // sur l'identifiant interne n'aurait aucun sens.
+  //
+  // useMemo evite de reconstruire le tableau a chaque frappe. La liste est
+  // plafonnee a 100 lignes par la requete, donc un filtre en base
+  // n'apporterait rien aujourd'hui.
+  const needle = query.trim().toLowerCase();
+  const visible = useMemo(
+    () =>
+      needle
+        ? rows.filter((n) =>
+            [n.event, n.channel, n.status, n.related_type ?? '', n.error_message ?? '']
+              .join(' ')
+              .toLowerCase()
+              .includes(needle),
+          )
+        : rows,
+    [rows, needle],
+  );
 
   const isEn = locale === 'en';
   const fmt = (v: unknown) =>
@@ -74,8 +99,51 @@ export default function NotificationList({
   }
 
   return (
-    <ul className="divide-y divide-border">
-      {rows.map((n) => {
+    <div>
+      <div className="border-b border-border px-4 py-3">
+        <div className="relative">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-faint"
+            strokeWidth={2}
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={
+              isEn ? 'Search an event, a status…' : 'Rechercher un evenement, un statut…'
+            }
+            aria-label={isEn ? 'Search notifications' : 'Rechercher une notification'}
+            className="h-10 w-full rounded-[10px] border border-border-strong bg-white pl-9 pr-9 text-sm outline-none focus:border-accent"
+          />
+          {needle && (
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              aria-label={isEn ? 'Clear search' : 'Effacer la recherche'}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-pill p-1 text-text-faint transition-colors hover:bg-surface-alt hover:text-text"
+            >
+              <X className="h-4 w-4" strokeWidth={2} />
+            </button>
+          )}
+        </div>
+        {/* Le compteur passe de « N notifications » a « N sur M ». Sans lui le
+            resultat du filtre est muet : l'utilisateur ne sait pas s'il a
+            trouve ce qu'il cherchait, ou si la liste est vide par nature. */}
+        {needle && (
+          <p className="mt-2 text-xs text-text-faint tnum">
+            {visible.length} / {rows.length}
+          </p>
+        )}
+      </div>
+
+      {visible.length === 0 ? (
+        <p className="px-4 py-8 text-center text-sm text-text-muted">
+          {isEn ? 'No notification matches this search.' : 'Aucune notification ne correspond.'}
+        </p>
+      ) : (
+        <ul className="divide-y divide-border">
+          {visible.map((n) => {
         // Un message renvoie vers LE FIL de celui qui le recoit : la page du
         // trader s'il est destinataire, celle du manager sinon. L'evenement
         // ne dit pas qui lit, donc on se fie au role connecte.
@@ -120,6 +188,8 @@ export default function NotificationList({
           </li>
         );
       })}
-    </ul>
+        </ul>
+      )}
+    </div>
   );
 }

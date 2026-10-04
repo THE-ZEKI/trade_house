@@ -34,13 +34,35 @@ export default async function TeamPage({
   const { with: interlocuteur } = await searchParams;
   const isAdmin = user.role === 'admin';
 
-  const traders = await asUser(user.userId, (sql) =>
-    queryWith<{ id: string; full_name: string; last_message: string | null; last_at: string | null; unread: number }>(
+  // Le role de chaque interlocuteur est renvoye pour que la liste puisse le
+  // distinguer (036) : un manager voit « ses traders », un admin voit « ses
+  // interlocuteurs ».
+  //
+  //   pour un MANAGER, ses interlocuteurs sont ses traders — inchangé.
+  //   pour un ADMIN, ce sont TOUS les comptes actifs : le canal d annonces.
+  //
+  // Le RLS ne filtre pas cette liste : elle porte sur public.users, dont les
+  // politiques laissent voir l'annuaire a tout utilisateur authentifie. Le
+  // cloisonnement porte sur les MESSAGES (app.can_message), pas sur la
+  // connaissance de l annuaire — un admin a toujours besoin de savoir qui
+  // existe pour leur ecrire.
+  //
+  // Le menu deroulant de l'invitation y inscrit aussi l admin lui-meme, ce qui
+  // evite de proposer un role a un compte qui ne peut pas inviter.
+  const interlocuteurs = await asUser(user.userId, (sql) =>
+    // role : la clause WHERE impose IN ('manager','trader'), donc le type
+    // Postgres renvoie bien une union, pas un varchar quelconque. Le dire
+    // evite un cast `as` au passage de la requete au composant.
+    queryWith<{
+      id: string;
+      full_name: string;
+      role: 'manager' | 'trader';
+      last_message: string | null;
+      last_at: string | null;
+      unread: number;
+    }>(
       sql,
-      // Dernier message et compteur de non-lus par LEFT JOIN LATERAL : une seule
-      // requete pour toute la liste. Le RLS de public.messages garantit qu'un
-      // trader n'apparait jamais avec le dernier message d'un autre.
-      `select t.id, t.full_name,
+      `select t.id, t.full_name, t.role,
               lm.body as last_message, lm.created_at as last_at,
               (select count(*)::int from public.messages m
                 where m.sender_id = t.id and m.recipient_id = $1::uuid
@@ -54,10 +76,15 @@ export default async function TeamPage({
             order by m.created_at desc
             limit 1
          ) lm on true
-        where t.role = 'trader' and t.is_active
-          and (app.is_admin() or app.can_manage_trader(t.id))
-        order by t.full_name`,
-      [user.userId],
+        where t.is_active
+          and t.id <> $1::uuid
+          and (
+                ($2::boolean = false and t.role = 'trader'
+                   and app.can_manage_trader(t.id))
+             or ($2::boolean = true and t.role in ('manager', 'trader'))
+              )
+        order by t.role, t.full_name`,
+      [user.userId, isAdmin],
     ),
   );
 
@@ -104,7 +131,11 @@ export default async function TeamPage({
   const managers = await asUser(user.userId, (sql) =>
     queryWith<{ id: string; full_name: string }>(
       sql,
-      `select id, full_name from public.users where role = 'manager' and is_active order by full_name`,
+      // Les admins sont exclus : ils ne peuvent rien inviter (RG-02), et leur
+      // proposer un role produirait un echec a la soumission.
+      `select id, full_name from public.users
+        where role = 'manager' and is_active
+        order by full_name`,
     ),
   );
 
@@ -122,8 +153,8 @@ export default async function TeamPage({
           title="Mon equipe"
           subtitle={
             isAdmin
-              ? 'Tous les traders — aucun compte de ce groupe ne vous est propre'
-              : `${traders.length} trader(s) sous votre supervision`
+              ? 'Tous vos interlocuteurs — canal d annonces et de retours'
+              : `${interlocuteurs.length} trader(s) sous votre supervision`
           }
           actions={
             can(user, 'trader.invite') ? (
@@ -140,7 +171,7 @@ export default async function TeamPage({
           <div className="px-4 py-4">
             <TeamPanel
               meId={user.userId}
-              traders={traders}
+              interlocuteurs={interlocuteurs}
               initialSelected={interlocuteur ?? null}
               messages={messages}
               isAdmin={isAdmin}
@@ -151,7 +182,7 @@ export default async function TeamPage({
         <p className="flex items-start gap-2 text-xs text-text-faint">
           <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={2} />
           {isAdmin
-            ? 'En tant qu administrateur, vous voyez tous les traders mais aucune de leurs conversations : la messagerie est cloisonnee par equipe.'
+            ? 'Canal d annonces : vous échangez avec tous les managers et traders, et eux peuvent vous répondre. Les conversations entre un manager et son équipe vous restent invisibles.'
             : 'Vos conversations avec vos traders sont privees : vous ne voyez pas leurs echanges entre eux, et le contenu n est jamais repris dans un e-mail.'}
         </p>
       </div>
