@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Loader2, AlertCircle, CalendarPlus, X, TriangleAlert, Check, UserRound,
+  Loader2, AlertCircle, CalendarPlus, X, TriangleAlert, Check, UserRound, Search,
 } from 'lucide-react';
 
 /**
@@ -44,9 +44,14 @@ function defaultStart() {
 }
 
 export default function CreateMeeting({
-  traders,
+  contacts,
+  canInviteEveryone,
 }: {
-  traders: { id: string; full_name: string }[];
+  contacts: { id: string; full_name: string; role: 'manager' | 'trader' }[];
+  // Seul l'admin peut convoquer tout le monde. Un manager n'a de toute facon
+  // dans sa liste que ses propres traders — le bouton n'aurait rien a ajouter,
+  // et il laisserait croire qu'il invite des comptes qu'il ne voit pas.
+  canInviteEveryone: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -54,6 +59,7 @@ export default function CreateMeeting({
   const [error, setError] = useState<string | null>(null);
   const [conflicts, setConflicts] = useState<string[]>([]);
   const [createdId, setCreatedId] = useState<string | null>(null);
+  const [needle, setNeedle] = useState('');
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -73,6 +79,33 @@ export default function CreateMeeting({
 
   function toggle(id: string) {
     setParticipants((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+  }
+
+  // La recherche porte sur le NOM et sur le ROLE. Chercher « manager » doit
+  // remonter tous les managers : sur une plateforme qui grandit, on cherche
+  // souvent par fonction avant de connaitre le nom — et une liste de 200 noms
+  // sans filtre n'est plus consultable.
+  const recherche = needle.trim().toLowerCase();
+  const filtres = recherche
+    ? contacts.filter(
+        (c) =>
+          c.full_name.toLowerCase().includes(recherche) ||
+          c.role.includes(recherche),
+      )
+    : contacts;
+
+  const tousChoisis = filtres.length > 0 && filtres.every((c) => participants.includes(c.id));
+
+  // « Tout le monde » agit sur ce qui est VISIBLE, pas sur la liste entiere.
+  // Avec un filtre actif, un clic sur « tout le monde » doit inviter ce qu'on
+  // voit — sinon l'utilisateur croit avoir selectionne 3 personnes et en invite
+  // 200, ce qui est le pire resultat possible pour une annonce.
+  function basculerTous() {
+    const ids = filtres.map((c) => c.id);
+    setParticipants((p) => {
+      const tousLa = ids.every((id) => p.includes(id));
+      return tousLa ? p.filter((id) => !ids.includes(id)) : [...new Set([...p, ...ids])];
+    });
   }
 
   async function submit() {
@@ -220,31 +253,77 @@ export default function CreateMeeting({
                 {participants.length} selectionne(s)
               </span>
             </legend>
-            {traders.length === 0 ? (
-              <p className="text-xs text-text-faint">Aucun trader a inviter.</p>
+            {contacts.length === 0 ? (
+              <p className="text-xs text-text-faint">Aucun contact a inviter.</p>
             ) : (
-              <div className="max-h-44 overflow-y-auto rounded-[10px] border border-border-strong">
-                {traders.map((tr) => {
-                  const on = participants.includes(tr.id);
-                  return (
-                    <label
-                      key={tr.id}
-                      className={
-                        'flex cursor-pointer items-center gap-2.5 border-b border-border px-3 py-2.5 last:border-b-0 '
-                        + (on ? 'bg-sky-50' : 'hover:bg-surface-alt')
-                      }
+              <div className="grid gap-2">
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search
+                      className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-faint"
+                      strokeWidth={2}
+                    />
+                    <input
+                      type="search"
+                      value={needle}
+                      onChange={(e) => setNeedle(e.target.value)}
+                      placeholder="Rechercher un contact (nom ou role)"
+                      aria-label="Rechercher un contact"
+                      className="h-10 w-full rounded-[10px] border border-border-strong bg-white pl-9 pr-3 text-sm outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+                    />
+                  </div>
+                  {canInviteEveryone && (
+                    <button
+                      type="button"
+                      onClick={basculerTous}
+                      className="h-10 shrink-0 whitespace-nowrap rounded-[10px] border border-border-strong bg-white px-3 text-sm font-medium hover:bg-surface-alt"
                     >
-                      <input
-                        type="checkbox"
-                        checked={on}
-                        onChange={() => toggle(tr.id)}
-                        className="h-4 w-4 rounded border-border-strong"
-                      />
-                      <UserRound className="h-4 w-4 text-text-faint" strokeWidth={2.2} />
-                      <span className="text-sm">{tr.full_name}</span>
-                    </label>
-                  );
-                })}
+                      {tousChoisis ? 'Tout decocher' : 'Tout le monde'}
+                    </button>
+                  )}
+                </div>
+
+                {recherche && (
+                  <p className="text-xs text-text-faint">
+                    {filtres.length} resultat(s) sur {contacts.length}
+                    {!canInviteEveryone && ' sur votre equipe'}
+                  </p>
+                )}
+
+                <div className="max-h-44 overflow-y-auto rounded-[10px] border border-border-strong">
+                  {filtres.length === 0 ? (
+                    <p className="px-3 py-4 text-sm text-text-faint">Aucun resultat.</p>
+                  ) : (
+                    filtres.map((c) => {
+                      const on = participants.includes(c.id);
+                      return (
+                        <label
+                          key={c.id}
+                          className={
+                            'flex cursor-pointer items-center gap-2.5 border-b border-border px-3 py-2.5 last:border-b-0 '
+                            + (on ? 'bg-sky-50' : 'hover:bg-surface-alt')
+                          }
+                        >
+                          <input
+                            type="checkbox"
+                            checked={on}
+                            onChange={() => toggle(c.id)}
+                            className="h-4 w-4 rounded border-border-strong"
+                          />
+                          <UserRound className="h-4 w-4 shrink-0 text-text-faint" strokeWidth={2.2} />
+                          <span className="text-sm">{c.full_name}</span>
+                          {/* Le role est affiche : sans lui, une liste de 200 noms
+                              ne dit plus rien, et l admin ne sait plus qui est
+                              manager. C est aussi ce qui rend la recherche par
+                              role utile. */}
+                          <span className="ml-auto shrink-0 rounded-pill bg-surface-alt px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-faint">
+                            {c.role}
+                          </span>
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
               </div>
             )}
           </fieldset>

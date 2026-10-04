@@ -24,11 +24,27 @@ export default async function MeetingsPage() {
   const user = await pageUser();
   const isTrader = user.role === 'trader';
 
-  // La liste des traders invites sert au selecteur de la creation de reunion.
-  // Reservee a la supervision : un trader n invite personne.
+  // Les contacts invitables alimentent le selecteur de la creation de reunion.
+  //
+  // Un MANAGER n'invite que ses propres traders : c'est le RLS de public.users
+  // qui le garantit, sans clause supplementaire.
+  //
+  // Un ADMIN peut en revanche inviter n'importe qui, et c'est pourquoi la
+  // requete ne filtre plus sur le role. Une liste restreinte aux traders aurait
+  // rendu l'administration d'une plateforme impossible : l'admin ne
+  // pourrait pas convoquer ses propres managers, alors que c'est precisement ce
+  // que suppose une annonce plateforme.
+  //
+  // Les comptes desactives sont exclus (is_active) : on ne convoque pas quelqu'un
+  // qui ne se connectera plus. L'admin lui-meme en fait partie — il ne
+  // s'invite pas, comme demande, et le composant le masque.
   const { upcoming, past, traders } = await asUser(user.userId, async (sql) => ({
     traders: can(user, 'meeting.create')
-      ? await queryWith(sql, "select id, full_name from public.users where role = 'trader' and is_active order by full_name")
+      ? await queryWith(sql, `
+          select u.id, u.full_name, u.role::text as role, u.id as self_id
+            from public.users u
+           where u.role in ('manager', 'trader') and u.is_active
+           order by u.role desc, u.full_name`)
       : [],
     upcoming: await queryWith(
       sql,
@@ -79,7 +95,19 @@ export default async function MeetingsPage() {
           subtitle={upcoming.length > 0 ? `${upcoming.length} a venir` : undefined}
           actions={
             can(user, 'meeting.create')
-              ? <CreateMeeting traders={traders.map((r) => ({ id: String(r.id), full_name: String(r.full_name) }))} />
+              // 'contacts' plutot que 'traders' : la liste contient des managers
+              // pour l'admin. Le filtre exclu l'admin lui-meme — il lance la
+              // reunion, il n'en est pas un participant invite.
+              ? <CreateMeeting
+                  contacts={traders
+                    .filter((r) => String(r.id) !== user.userId)
+                    .map((r) => ({
+                      id: String(r.id),
+                      full_name: String(r.full_name),
+                      role: String(r.role) as 'manager' | 'trader',
+                    }))}
+                  canInviteEveryone={user.role === 'admin'}
+                />
               : undefined
           }
         />
