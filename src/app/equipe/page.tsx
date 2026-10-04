@@ -85,15 +85,40 @@ export default async function TeamPage({
         where t.is_active
           and t.id <> $1::uuid
           and (
-                -- l admin : interlocuteur de tout le monde (036)
-                t.role = 'admin'
-             or ($2::boolean = true and t.role in ('manager', 'trader'))
-             or ($2::boolean = false and t.role = 'trader'
-                   and app.can_manage_trader(t.id))
+              ($2::boolean = true and t.role in ('manager', 'trader'))
+           or ($2::boolean = false and t.role = 'trader'
+                 and app.can_manage_trader(t.id))
               )
+        -- l admin : interlocuteur de tout le monde (036)
+        --
+        -- 037 : il ne peut PAS venir de cette clause. Le RLS de public.users
+        -- (008) retire la ligne du compte admin pour un manager et pour un
+        -- trader, et il le fait AVANT le WHERE — aucun predicat applicatif ne
+        -- peut la faire revenir. Il faut donc passer par fn_admin_contacts,
+        -- seule voie d'acces prevue pour l'annuaire.
+        --
+        -- L'union est preferee a un simple ajout de ligne : public.users ne
+        -- rend que les cas deja autorises, et la fonction ajoute exactement le
+        -- canal d annonces. Aucun doublon possible, les deux branches etant
+        -- disjointes sur le role.
+        union all
+        select a.id, a.full_name, 'admin'::text as role,
+               lm.body as last_message, lm.created_at as last_at,
+               (select count(*)::int from public.messages m
+                 where m.sender_id = a.id and m.recipient_id = $1::uuid
+                   and m.read_at is null) as unread
+          from app.fn_admin_contacts() a
+          left join lateral (
+            select m.body, m.created_at
+              from public.messages m
+             where (m.sender_id = a.id and m.recipient_id = $1::uuid)
+                or (m.recipient_id = a.id and m.sender_id = $1::uuid)
+             order by m.created_at desc
+             limit 1
+          ) lm on true
         -- l admin d abord : c est le canal transversal, il ne doit pas
         -- etre melange a la liste de l equipe propre au manager.
-        order by t.role, t.full_name`,
+        order by role, full_name`,
       [user.userId, isAdmin],
     ),
   );

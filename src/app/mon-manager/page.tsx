@@ -48,54 +48,57 @@ export default async function MyManagerPage({
   // Le manager passe par app.manager_of (le JOIN echouerait : la ligne du
   // manager n'est pas lisible par son trader, migration 029). Les admins, eux,
   // passent par une requete simple : un administrateur est dans l'annuaire.
-  // Les non-lus et l'apercu par interlocuteur : c'est ce qui affiche la pastille
-  // et le dernier echange sur la bonne ligne. Un compteur global serait trompeur
-  // — il confirmerait « vous avez des messages » sans dire lesquels.
-  //
-  // La liste est construite en SQL plutot qu'assemblee en JavaScript : le nom du
-  // manager ne peut pas etre lu par un trader (RLS 029), il faut donc passer par
-  // app.fn_user_display_name, que le RLS autorise. Assembler les deux listes a
-  // la main obligerait a reconstruire ce nom — et a reintroduire la fuite que
-  // la fonction empeche.
-  const interlocuteurs = await asUser(user.userId, (sql) =>
-    queryWith<{
-      id: string;
-      full_name: string;
-      role: 'admin' | 'manager' | 'trader';
-      last_message: string | null;
-      last_at: string | null;
-      unread: number;
-    }>(
-      sql,
-      `with mes_contacts as (
-         select app.manager_of($1::uuid) as id, 'manager'::text as role
-         union all
-         select u.id, 'admin'::text from public.users u
-          where u.role = 'admin' and u.is_active
-       )
-       select c.id,
-              -- le nom du manager passe par fn_user_display_name : sa ligne
-              -- n'est pas lisible par son propre trader (029)
-              coalesce(app.fn_user_display_name(c.id, $1::uuid), c.id::text) as full_name,
-              c.role::text as role,
-              lm.body as last_message, lm.created_at as last_at,
-              (select count(*)::int from public.messages m
-                where m.sender_id = c.id and m.recipient_id = $1::uuid
-                  and m.read_at is null) as unread
-         from mes_contacts c
-         left join lateral (
-           select m.body, m.created_at
-             from public.messages m
-            where (m.sender_id = c.id and m.recipient_id = $1::uuid)
-               or (m.recipient_id = c.id and m.sender_id = $1::uuid)
-            order by m.created_at desc
-            limit 1
-         ) lm on true
-        where c.id is not null
-        order by c.role, full_name`,
-      [user.userId],
-    ),
-  );
+  // 037 : les admins viennent de fn_admin_contacts(), pas de public.users.
+//
+// La ligne du compte admin est invisible pour un trader — RLS de public.users
+// (008), qui ne laisse passer que soi-meme, les admins, et SES propres traders.
+// Une requete ordinaire sur public.users renvoie donc zero ligne, et l'admin
+// disparait de l'ecran alors qu'il peut-ecrire au trader. C'etait le symptome :
+// message bien envoye, notification presente, interlocuteur introuvable.
+//
+// Le nom du manager suit la meme contrainte : sa ligne n'est pas lisible par son
+// trader (029), il faut donc passer par fn_user_display_name, que le RLS
+// autorise. La liste est donc assemblee en SQL plutot qu'en JavaScript — le
+//-JS n'aurait pas moins de droits que la base.
+const interlocuteurs = await asUser(user.userId, (sql) =>
+  queryWith<{
+    id: string;
+    full_name: string;
+    role: 'admin' | 'manager' | 'trader';
+    last_message: string | null;
+    last_at: string | null;
+    unread: number;
+  }>(
+    sql,
+    `with mes_contacts as (
+       -- le manager de tutelle, resolu par app.manager_of : le JOIN echouerait,
+       -- sa ligne n'etant pas lisible par son propre trader (029)
+       select app.manager_of($1::uuid) as id, 'manager'::text as role
+        where app.manager_of($1::uuid) is not null
+       union all
+       -- les admins : seule voie d'acces a l'annuaire (037)
+       select a.id, 'admin'::text from app.fn_admin_contacts() a
+     )
+     select c.id,
+            coalesce(app.fn_user_display_name(c.id, $1::uuid), c.id::text) as full_name,
+            c.role as role,
+            lm.body as last_message, lm.created_at as last_at,
+            (select count(*)::int from public.messages m
+              where m.sender_id = c.id and m.recipient_id = $1::uuid
+                and m.read_at is null) as unread
+       from mes_contacts c
+       left join lateral (
+         select m.body, m.created_at
+           from public.messages m
+          where (m.sender_id = c.id and m.recipient_id = $1::uuid)
+             or (m.recipient_id = c.id and m.sender_id = $1::uuid)
+          order by m.created_at desc
+          limit 1
+       ) lm on true
+      order by c.role, full_name`,
+    [user.userId],
+  ),
+);
 
   const manager = interlocuteurs.find((c) => c.role === 'manager') ?? null;
 
