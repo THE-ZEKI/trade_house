@@ -68,7 +68,7 @@ export default async function TeamPage({
       unread: number;
     }>(
       sql,
-      `select t.id, t.full_name, t.role,
+      `select t.id, t.full_name, t.role::text as role,
               lm.body as last_message, lm.created_at as last_at,
               (select count(*)::int from public.messages m
                 where m.sender_id = t.id and m.recipient_id = $1::uuid
@@ -101,6 +101,11 @@ export default async function TeamPage({
         -- rend que les cas deja autorises, et la fonction ajoute exactement le
         -- canal d annonces. Aucun doublon possible, les deux branches etant
         -- disjointes sur le role.
+        -- t.role est un ENUM, pas du texte. Le cast n'est pas cosmetique : sans
+        -- lui, l'union compare un enum a la constante 'admin'::text de la seconde
+        -- branche, et PostgreSQL echoue avec « UNION types user_role and text
+        -- cannot be matched ». L'erreur ne dependait d'aucune donnee, elle
+        -- faisait tomber la page pour tout le monde.
         union all
         select a.id, a.full_name, 'admin'::text as role,
                lm.body as last_message, lm.created_at as last_at,
